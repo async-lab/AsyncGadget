@@ -577,7 +577,29 @@ function __INTERNAL_JSON() {
     }
 
     function JSON_WRITE() {
-        :
+        local result=()
+        key="."
+        readarray -t result < <(JSON_READ)
+        json="${result[1]}"
+
+        export key="$(
+            IFS="."
+            echo "${path_list[*]}"
+        )"
+
+        if [ "$key" == "." ]; then
+            echo "$body"
+            return 0
+        fi
+
+        readarray -t result < <(JSON_READ)
+        local offset="${result[0]}"
+        local old_body="${result[1]}"
+        if [ -n "$old_body" ]; then
+            json="${json:0:$((offset - ${#old_body}))}$body${json:offset}"
+            echo "$json"
+            return 0
+        fi
     }
 
     local method="$1"
@@ -588,7 +610,8 @@ function __INTERNAL_JSON() {
         IFS="."
         echo "${path_list[*]}"
     )"
-    export json=$3
+    export body="$3"
+    export json="${!#}"
     json=$(echo "$json" | tr -d $'\n\r\t')
     json="${json#"${json%%[![:space:]]*}"}"
     json="${json%"${json##*[![:space:]]}"}"
@@ -604,7 +627,7 @@ function __INTERNAL_JSON() {
         echo "${result[1]}"
         ;;
     *)
-        return 1
+        (JSON_WRITE)
         ;;
     esac
 }
