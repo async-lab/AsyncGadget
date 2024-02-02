@@ -13,6 +13,7 @@ export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/IO.sh"
 source "$ROOT_DIR/base/LOG.sh"
+source "$ROOT_DIR/base/UTIL.sh"
 
 ##############################################
 
