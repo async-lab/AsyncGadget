@@ -331,30 +331,20 @@ function INSERT_TO_JSON() {
 function __INTERNAL_JSON() {
     function JSON_RAW_KEY_PROCESSOR() {
         local raw_key="$1"
-        local key=""
+        local path_list=()
 
         local path_level=0
 
         local quote_flag=1
         local esc_flag=1
-        local index_flag=1
-        local root_array_flag=1
 
         local buffer=""
 
         local last_char=""
 
-        if [ "${raw_key:0:1}" == "." ]; then
-            raw_key="${raw_key:1}"
-            key+="."
-        else
-            root_array_flag=0
-        fi
-
         for ((offset = 0; offset < "${#raw_key}"; offset++)); do
             local char="${raw_key:offset:1}"
             local keyword_flag=1
-            local last_index_flag="$index_flag"
 
             case "$char" in
             "\"")
@@ -365,21 +355,22 @@ function __INTERNAL_JSON() {
                 ;;
             "[")
                 if [ "$quote_flag" -eq 1 ]; then
-                    index_flag=0
-                fi
-                ;;
-            "]")
-                if [ "$quote_flag" -eq 1 ]; then
-                    index_flag=1
+                    if [ -n "$last_char" ]; then
+                        buffer+="\""
+                    fi
                 fi
                 ;;
             ".")
                 if [ "$quote_flag" -eq 1 ]; then
                     keyword_flag=0
-                    if [ "$last_char" != "]" ]; then
-                        buffer+="\""
+                    if [ -n "$buffer" ] && [ "$path_level" -gt 0 ]; then
+                        buffer="\"$buffer"
+                        if [ "$last_char" != "]" ]; then
+                            buffer+="\""
+                        fi
                     fi
-                    key+="\"$buffer."
+
+                    path_list+=("$buffer")
                     buffer=""
                     ((path_level++))
                 fi
@@ -393,25 +384,31 @@ function __INTERNAL_JSON() {
             fi
 
             if [ "$keyword_flag" -eq 1 ]; then
-                if [ "$last_index_flag" -eq 1 ] && [ "$index_flag" -eq 0 ] && [ "$last_char" != "]" ] && ([ "$root_array_flag" -eq 1 ] || [ "$path_level" -ne 0 ] && [ "" ]); then
-                    buffer+="\""
-                fi
                 buffer+="$char"
             fi
 
             last_char="$char"
         done
 
-        if [ "$root_array_flag" -eq 1 ] || { [ "$path_level" -ne 0 ] && [ "$root_array_flag" -eq 0 ]; }; then
-            buffer="\"$buffer"
-        fi
-        if [ "$last_char" != "]" ]; then
-            buffer+="\""
+        if [ -n "$buffer" ]; then
+            if [ "$path_level" -gt 0 ]; then
+                buffer="\"$buffer"
+            fi
+
+            if [ "$last_char" != "]" ]; then
+                buffer+="\""
+            fi
         fi
 
-        key+="$buffer"
+        if [ "$quote_flag" -eq 0 ]; then
+            return 1
+        fi
 
-        echo "$key"
+        path_list+=("$buffer")
+
+        for path in "${path_list[@]}"; do
+            echo "$path"
+        done
     }
 
     function JSON_READ() {
@@ -453,7 +450,7 @@ function __INTERNAL_JSON() {
 
         local start_char="${json:offset:1}"
 
-        if [ "$key" == "." ]; then
+        if [ "$key" == "." ] && [ "$depth" -eq 0 ]; then
             value_input_flag=0
             value_buffer+="$start_char"
         fi
@@ -583,9 +580,14 @@ function __INTERNAL_JSON() {
         :
     }
 
-    export method="$1"
+    local method="$1"
     local raw_key="$2"
-    export key="$(JSON_RAW_KEY_PROCESSOR "$raw_key")"
+    export path_list=()
+    readarray -t path_list < <(JSON_RAW_KEY_PROCESSOR "$raw_key")
+    export key="$(
+        IFS="."
+        echo "${path_list[*]}"
+    )"
     export json=$3
     json=$(echo "$json" | tr -d $'\n\r\t')
     json="${json#"${json%%[![:space:]]*}"}"
