@@ -616,6 +616,13 @@ function __INTERNAL_JSON() {
     json="${json#"${json%%[![:space:]]*}"}"
     json="${json%"${json##*[![:space:]]}"}"
 
+    # 上面的意思是
+    # "   /-hello    -/"
+    # "   "
+    # "/-hello-/    "
+    # "    "
+    # "hello"
+
     if [ -z "$method" ] || [ -z "$key" ] || [ -z "$json" ]; then
         return 1
     fi

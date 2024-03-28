@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+
+# 需要jq和jo
+# 用于从Github拉取Release文件
+
+##############################################
+
+MODULE_NAME="git_release_updater"
+
+DIR="$(readlink -f "$(dirname "$0")")"
+
+export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
+
+source "$ROOT_DIR/base/IO.sh"
+source "$ROOT_DIR/base/LOG.sh"
+source "$ROOT_DIR/base/JSON.sh"
+source "$ROOT_DIR/base/UTIL.sh"
+
+##############################################
+
+# env
+# export OWNER="Async-Lab"
+# export REPO="AsyncWebServer"
+# export PAT="xxx"
+# export SERVICE_NAME="xxx"
+
+VERSION_FILE="./version"
+JAR_FILE="./release.jar"
+TEMP_FILE="./temp.jar"
+
+##############################################
+
+function CURL() {
+    curl -s -L -H "Authorization: Bearer $PAT" "$@"
+}
+
+function EXIT() {
+    exit "$@"
+}
+
+function USAGE() {
+    LOG "环境变量:"
+    LOG "OWNER: \"Async-Lab\""
+    LOG "REPO: \"AsyncWebServer\""
+    LOG "PAT:\"xxxx\""
+    LOG "SERVICE_NAME:\"backend\""
+    LOG "用法:"
+    LOG "git_release_updater.sh "
+}
+
+function CHECK_PARAMS() {
+    CHECK_IF_ALL_EXIST "$OWNER" "$REPO"
+}
+
+function MAIN() {
+    if [ "$(CHECK_PARAMS)" -eq 1 ]; then
+        USAGE
+        EXIT 1
+    fi
+
+    LOG "检测新版本..."
+
+    touch "$VERSION_FILE"
+    local latest=$(CURL "https://api.github.com/repos/$OWNER/$REPO/releases/latest")
+    local current_version=$(cat "$VERSION_FILE")
+    local latest_version=$(echo "$latest" | jq -r .assets[].id)
+
+    if [ "$current_version" != "$latest_version" ]; then
+        LOG "当前版本:$current_version, 检测到新版本: $latest_version..."
+        LOG "下载新版本..."
+        local is_successful=$(RETURN_AS_OUTPUT CURL -H "Accept:application/octet-stream" -o "$TEMP_FILE" "https://api.github.com/repos/$OWNER/$REPO/releases/assets/$latest_version")
+
+        if [ "$is_successful" -eq 0 ]; then
+            LOG "下载完成!"
+            echo "$latest_version" >./version
+            mv "$TEMP_FILE" "$JAR_FILE"
+            if [ -n "$SERVICE_NAME" ]; then
+                LOG "重启服务..."
+                if systemctl restart "$SERVICE_NAME"; then
+                    LOG "服务重启成功!"
+                else
+                    LOG "服务重启失败!"
+                fi
+            fi
+        else
+            LOG "下载失败!"
+        fi
+    else
+        LOG "当前无新版本"
+    fi
+
+    EXIT 0
+}
+
+MAIN "$@"
