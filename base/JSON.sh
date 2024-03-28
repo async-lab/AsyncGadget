@@ -3,7 +3,7 @@
 
 ##############################################
 
-MODULE_NAME="JSON"
+# MODULE_NAME="JSON"
 
 DIR="$(readlink -f "$(dirname "$0")")"
 
