@@ -8,10 +8,11 @@ DIR=$(readlink -f "$(dirname "$0")")
 export ROOT_DIR="$DIR"
 
 CERT_SYNC_BOT="$ROOT_DIR/misc/cert_sync_bot.sh"
+GIT_RELEASE_UPDATER="$ROOT_DIR/misc/git_release_updater.sh"
+STALKER="$ROOT_DIR/misc/stalker.sh"
 SYSTEMD_BOT="$ROOT_DIR/misc/systemd_bot.sh"
 DSXTP="$ROOT_DIR/network/dsxtphf/dsxtp.sh"
 DSXHF="$ROOT_DIR/network/dsxtphf/dsxhf.py"
-STALKER="$ROOT_DIR/misc/stalker.sh"
 
 ##############################################
 
@@ -29,6 +30,12 @@ function MAIN() {
     "cert_sync_bot")
         $CERT_SYNC_BOT "$@"
         ;;
+    "git_release_updater")
+        $GIT_RELEASE_UPDATER "$@"
+        ;;
+    "stalker")
+        $STALKER "$@"
+        ;;
     "systemd_bot")
         $SYSTEMD_BOT "$@"
         ;;
@@ -37,9 +44,6 @@ function MAIN() {
         ;;
     "dsxhf")
         $DSXHF "$@"
-        ;;
-    "stalker")
-        $STALKER "$@"
         ;;
     *)
         echo "未知的脚本名称"
