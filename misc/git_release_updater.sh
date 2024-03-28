@@ -23,11 +23,11 @@ source "$ROOT_DIR/base/UTIL.sh"
 # export OWNER="Async-Lab"
 # export REPO="AsyncWebServer"
 # export PAT="xxx"
-# export SERVICE_NAME="xxx"
+# export SERVICE_NAME="backend"
 
-VERSION_FILE="./version"
-JAR_FILE="./release.jar"
-TEMP_FILE="./temp.jar"
+VERSION_FILE="$1"
+JAR_FILE="$2"
+TEMP_FILE="$3"
 
 ##############################################
 
@@ -46,7 +46,7 @@ function USAGE() {
     LOG "PAT:\"xxxx\""
     LOG "SERVICE_NAME:\"backend\""
     LOG "用法:"
-    LOG "git_release_updater.sh "
+    LOG "git_release_updater.sh <VERSION_FILE> <JAR_FILE> <TEMP_FILE>"
 }
 
 function CHECK_PARAMS() {
