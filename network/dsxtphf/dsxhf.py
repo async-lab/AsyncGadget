@@ -137,7 +137,7 @@ def handler(client_socket: socket.socket, client_addr: str):
             client_buffer = client_socket.recv(1024)
 
             if client_buffer:
-                if client_buffer == b"\n\n":
+                if client_buffer == b"\n\n":  # \n\n是nc命令发送的字串
                     client_socket.sendall(b"Hello DSXTP.")
                     heartbeat_time = 0
                 elif client_buffer.startswith(b"\x16\x03"):
