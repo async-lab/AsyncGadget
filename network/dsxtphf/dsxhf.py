@@ -17,6 +17,14 @@ import log
 
 ##############################################
 
+# env
+# export proxy_host="127.0.0.1"
+# export proxy_port=15777
+# export listen_host="127.0.0.1"
+# export listen_port=15777
+
+##############################################
+
 import socket
 import threading
 import ssl
@@ -26,11 +34,11 @@ import datetime
 import signal
 import time
 
-proxy_host = "127.0.0.1"
-proxy_port = 15777
+proxy_host = os.environ.get("proxy_host")
+proxy_port = os.environ.get("proxy_port")
 
-listen_host = "192.168.2.19"
-listen_port = 15777
+listen_host = os.environ.get("listen_host")
+listen_port = os.environ.get("listen_port")
 
 connection_counter = 0
 heartbeat_time = 0
