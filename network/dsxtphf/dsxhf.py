@@ -35,10 +35,10 @@ import signal
 import time
 
 proxy_host = os.environ.get("proxy_host")
-proxy_port = os.environ.get("proxy_port")
+proxy_port = int(os.environ.get("proxy_port"))
 
 listen_host = os.environ.get("listen_host")
-listen_port = os.environ.get("listen_port")
+listen_port = int(os.environ.get("listen_port"))
 
 connection_counter = 0
 heartbeat_time = 0
