@@ -174,7 +174,7 @@ def handler(client_socket: socket.socket, client_addr: str):
                 proxy_socket.sendall(client_buffer)
 
                 while len(selector.get_map()) == 2:
-                    events = selector.select(timeout=5)
+                    events = selector.select(timeout=10)
                     if not events:
                         break
                     for key, mask in events:
@@ -204,7 +204,7 @@ def start_listening():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((listen_host, listen_port))
 
-        s.listen(100)
+        s.listen(10000)
         while True:
             client_handler = threading.Thread(target=handler, args=(s.accept()))
             client_handler.daemon = True
