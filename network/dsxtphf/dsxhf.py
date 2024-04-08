@@ -25,14 +25,11 @@ import log
 
 ##############################################
 
-import socket
 import threading
-import ssl
 import struct
-import selectors
-import datetime
 import signal
 import time
+import asyncio
 
 proxy_host = os.environ.get("proxy_host")
 proxy_port = int(os.environ.get("proxy_port"))
@@ -63,58 +60,157 @@ def heartbeat_timer():
         time.sleep(1)
 
 
-def get_tls_len(block: bytes):
-    tls_len = struct.unpack("!H", block[3:5])[0] + 5
-    return tls_len
-
-
-def get_tls_host(data: bytes):
-    record_type = data[0]
-    version = data[1:3]
-    tls_body_len = struct.unpack("!H", data[3:5])[0]
-    handshake_type = data[5]
-    handshake_body_len = struct.unpack("!L", b"\x00" + data[6:9])[0]
-    protocol_version = struct.unpack("!H", data[9:11])[0]
-    random_number = data[11:43]
-    session_id_len = data[43]
-    session_id = data[44 : 44 + session_id_len]
-    cipher_suites_len = struct.unpack(
-        "!H", data[44 + session_id_len : 44 + session_id_len + 2]
-    )[0]
-    cipher_suites = data[
-        44 + session_id_len + 2 : 44 + session_id_len + cipher_suites_len + 4
-    ]
-    extensions_len = struct.unpack(
-        "!H",
-        data[
+class TLSClientHello:
+    def __init__(self, data: bytes):
+        self.data = data
+        self.record_type = data[0]
+        self.version = data[1:3]
+        self.tls_body_len = struct.unpack("!H", data[3:5])[0]
+        self.handshake_type = data[5]
+        self.handshake_body_len = struct.unpack("!L", b"\x00" + data[6:9])[0]
+        self.protocol_version = struct.unpack("!H", data[9:11])[0]
+        self.random_number = data[11:43]
+        self.session_id_len = data[43]
+        self.session_id = data[44 : 44 + self.session_id_len]
+        self.cipher_suites_len = struct.unpack(
+            "!H", data[44 + self.session_id_len : 44 + self.session_id_len + 2]
+        )[0]
+        self.cipher_suites = data[
             44
-            + session_id_len
-            + cipher_suites_len
-            + 4 : 44
-            + session_id_len
-            + cipher_suites_len
-            + 6
-        ],
-    )[0]
+            + self.session_id_len
+            + 2 : 44
+            + self.session_id_len
+            + self.cipher_suites_len
+            + 4
+        ]
+        self.extensions_len = struct.unpack(
+            "!H",
+            data[
+                44
+                + self.session_id_len
+                + self.cipher_suites_len
+                + 4 : 44
+                + self.session_id_len
+                + self.cipher_suites_len
+                + 6
+            ],
+        )[0]
+        extensions_start = 44 + self.session_id_len + self.cipher_suites_len + 6
+        self.extensions = []
+        while extensions_start < len(data):
+            extension_type = struct.unpack(
+                "!H", data[extensions_start : extensions_start + 2]
+            )[0]
+            extension_len = struct.unpack(
+                "!H", data[extensions_start + 2 : extensions_start + 4]
+            )[0]
+            self.extensions.append(
+                {
+                    "type": extension_type,
+                    "len": extension_len,
+                    "data": data[
+                        extensions_start + 4 : extensions_start + 4 + extension_len
+                    ],
+                }
+            )
+            extensions_start += 4 + extension_len
 
-    extensions_start = 44 + session_id_len + cipher_suites_len + 6
-    while extensions_start < len(data):
-        extension_type = struct.unpack(
-            "!H", data[extensions_start : extensions_start + 2]
-        )[0]
-        extension_len = struct.unpack(
-            "!H", data[extensions_start + 2 : extensions_start + 4]
-        )[0]
-        if extension_type == 0x00:
-            extension_body = data[
-                extensions_start + 4 : extensions_start + 4 + extension_len
-            ]
-            return extension_body[5:].decode()
-        extensions_start += 4 + extension_len
+    def get_host(self):
+        for extension in self.extensions:
+            if extension["type"] == 0x00:
+                return extension["data"][5:].decode()
+        return ""
+
+    def get_len(self):
+        return self.tls_body_len + 5
+
+
+async def relay(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    try:
+        while True:
+            data = await reader.read(1024)
+            if not data:
+                break
+            writer.write(data)
+            await writer.drain()
+    except Exception as e:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+
+async def handle_client(
+    client_reader: asyncio.StreamReader, client_writer: asyncio.StreamWriter
+):
+    global connection_counter
+    global heartbeat_time
+
+    connection_counter += 1
+
+    proxy_reader, proxy_writer = await asyncio.open_connection(proxy_host, proxy_port)
+
+    try:
+        client_buffer = await client_reader.read(1024)
+
+        if client_buffer:
+            if client_buffer == b"\n\n":  # \n\n是nc命令发送的字串
+                client_writer.write(b"Hello DSXTP.")
+                await client_writer.drain()
+                heartbeat_time = 0
+            elif client_buffer.startswith(b"\x16\x03"):
+                tls_client_hello = TLSClientHello(client_buffer)
+                while tls_client_hello.get_len() > len(client_buffer):
+                    client_buffer += await client_reader.read(1024)
+                host = tls_client_hello.get_host()
+                port = 443
+                if not host:
+                    raise asyncio.TimeoutError
+                print_log(f"HTTPS Host: {host}")
+                connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
+                proxy_writer.write(connect_request.encode())
+                await proxy_writer.drain()
+                while True:
+                    data = await proxy_reader.read(1024)
+                    if not data:
+                        break
+                    if data.endswith(b"\r\n\r\n"):
+                        break
+            else:
+                for line in client_buffer.split(b"\r\n"):
+                    if line.startswith(b"Host:"):
+                        print_log(f"HTTP  Host: {line[6:].decode()}")
+                        break
+
+            # Client Hello
+            proxy_writer.write(client_buffer)
+            await proxy_writer.drain()
+
+            done, pending = await asyncio.wait(
+                [
+                    asyncio.create_task(relay(client_reader, proxy_writer)),
+                    asyncio.create_task(relay(proxy_reader, client_writer)),
+                ],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+    except asyncio.TimeoutError:
+        pass
+
+    client_writer.close()
+    proxy_writer.close()
+    connection_counter -= 1
+
+
+async def start_listening():
+    global connection_counter
+
+    server = await asyncio.start_server(handle_client, listen_host, listen_port)
+    async with server:
+        await server.serve_forever()
 
 
 def ascii_art():
-    print_log("")
+    print_log()
     print_log("")
     print_log("▓█████▄   ██████ ▒██   ██▒ ██░ ██   █████▒")
     print_log("▒██▀ ██▌▒██    ▒ ▒▒ █ █ ▒░▓██░ ██▒▓██   ▒ ")
@@ -126,90 +222,7 @@ def ascii_art():
     print_log("░ ░  ░ ░  ░  ░   ░    ░   ░  ░░ ░ ░ ░     ")
     print_log("░          ░   ░    ░   ░  ░  ░           ")
     print_log("░                                         ")
-    print_log("")
-
-
-def handler(client_socket: socket.socket, client_addr: str):
-    global connection_counter
-    global heartbeat_time
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as proxy_socket:
-        client_socket.settimeout(5)
-        proxy_socket.settimeout(5)
-        proxy_socket.connect((proxy_host, proxy_port))
-
-        selector = selectors.DefaultSelector()
-        selector.register(client_socket, selectors.EVENT_READ)
-        selector.register(proxy_socket, selectors.EVENT_READ)
-
-        try:
-            client_buffer = client_socket.recv(1024)
-
-            if client_buffer:
-                if client_buffer == b"\n\n":  # \n\n是nc命令发送的字串
-                    client_socket.sendall(b"Hello DSXTP.")
-                    heartbeat_time = 0
-                elif client_buffer.startswith(b"\x16\x03"):
-                    while get_tls_len(client_buffer) > len(client_buffer):
-                        client_buffer += client_socket.recv(1024)
-                    host = get_tls_host(client_buffer)
-                    port = 443
-                    if not host:
-                        raise socket.timeout
-                    print_log(f"HTTPS Host: {host}")
-                    connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
-                    proxy_socket.sendall(connect_request.encode())
-                    while True:
-                        data = proxy_socket.recv(1024)
-                        if not data:
-                            break
-                        if data.endswith(b"\r\n\r\n"):
-                            break
-                else:
-                    for line in client_buffer.split(b"\r\n"):
-                        if line.startswith(b"Host:"):
-                            print_log(f"HTTP  Host: {line[6:].decode()}")
-                            break
-
-                # Client Hello
-                proxy_socket.sendall(client_buffer)
-
-                while len(selector.get_map()) == 2:
-                    events = selector.select(timeout=10)
-                    if not events:
-                        break
-                    for key, mask in events:
-                        if key.fileobj is client_socket:
-                            data = client_socket.recv(1024)
-                            if not data:
-                                selector.unregister(client_socket)
-                                break
-                            proxy_socket.sendall(data)
-                        elif key.fileobj is proxy_socket:
-                            data = proxy_socket.recv(1024)
-                            if not data:
-                                selector.unregister(proxy_socket)
-                                break
-                            client_socket.sendall(data)
-                        else:
-                            raise Exception("Unknown socket")
-        except socket.timeout:
-            pass
-    client_socket.close()
-    connection_counter -= 1
-
-
-def start_listening():
-    global connection_counter
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((listen_host, listen_port))
-
-        s.listen(10000)
-        while True:
-            client_handler = threading.Thread(target=handler, args=(s.accept()))
-            client_handler.daemon = True
-            connection_counter += 1
-            client_handler.start()
+    print_log()
 
 
 def on_exit():
@@ -232,6 +245,6 @@ if __name__ == "__main__":
         timer.daemon = True
         timer.start()
         print_log("开始监听...")
-        start_listening()
+        asyncio.run(start_listening())
     except KeyboardInterrupt:
         on_exit()
