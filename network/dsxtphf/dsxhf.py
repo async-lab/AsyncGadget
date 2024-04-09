@@ -197,7 +197,9 @@ async def handle_client(
         pass
 
     client_writer.close()
+    await client_writer.wait_closed()
     proxy_writer.close()
+    await proxy_writer.wait_closed()
     connection_counter -= 1
 
 
