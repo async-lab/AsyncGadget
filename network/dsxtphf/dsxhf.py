@@ -30,6 +30,7 @@ import struct
 import signal
 import time
 import asyncio
+import resource
 
 proxy_host = os.environ.get("proxy_host")
 proxy_port = int(os.environ.get("proxy_port"))
@@ -254,7 +255,7 @@ if __name__ == "__main__":
         print_log(f"代理服务器地址:   {proxy_host}:{proxy_port}")
         ascii_art()
         print_log("初始化...")
-        os.system("ulimit -n 65535")
+        resource.setrlimit(resource.RLIMIT_NOFILE, (65535, 65535))
         timer = threading.Thread(target=heartbeat_timer)
         timer.daemon = True
         timer.start()
