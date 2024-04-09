@@ -148,9 +148,11 @@ async def handle_client(
 
     connection_counter += 1
 
-    proxy_reader, proxy_writer = await asyncio.open_connection(proxy_host, proxy_port)
-
     try:
+        proxy_reader, proxy_writer = await asyncio.open_connection(
+            proxy_host, proxy_port
+        )
+
         client_buffer = await client_reader.read(1024)
 
         if client_buffer:
@@ -186,21 +188,30 @@ async def handle_client(
             proxy_writer.write(client_buffer)
             await proxy_writer.drain()
 
+            client_to_proxy_task = asyncio.create_task(
+                relay(client_reader, proxy_writer)
+            )
+            proxy_to_client_task = asyncio.create_task(
+                relay(proxy_reader, client_writer)
+            )
+
             done, pending = await asyncio.wait(
                 [
-                    asyncio.create_task(relay(client_reader, proxy_writer)),
-                    asyncio.create_task(relay(proxy_reader, client_writer)),
+                    client_to_proxy_task,
+                    proxy_to_client_task,
                 ],
                 return_when=asyncio.FIRST_COMPLETED,
             )
     except asyncio.TimeoutError:
         pass
-
-    client_writer.close()
-    await client_writer.wait_closed()
-    proxy_writer.close()
-    await proxy_writer.wait_closed()
-    connection_counter -= 1
+    finally:
+        client_to_proxy_task.cancel()
+        proxy_to_client_task.cancel()
+        client_writer.close()
+        await client_writer.wait_closed()
+        proxy_writer.close()
+        await proxy_writer.wait_closed()
+        connection_counter -= 1
 
 
 async def start_listening():
