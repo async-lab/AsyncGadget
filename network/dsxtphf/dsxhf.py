@@ -147,8 +147,6 @@ async def handle_client(
     global connection_counter
     global heartbeat_time
 
-    connection_counter += 1
-
     try:
         client_buffer = await client_reader.read(1024)
 
@@ -157,59 +155,60 @@ async def handle_client(
                 client_writer.write(b"Hello DSXTP.")
                 heartbeat_time = 0
             else:
-                proxy_reader, proxy_writer = await asyncio.open_connection(
-                    proxy_host, proxy_port
-                )
-                if client_buffer.startswith(b"\x16\x03"):
-                    tls_client_hello = TLSClientHello(client_buffer)
-                    while tls_client_hello.get_len() > len(client_buffer):
-                        client_buffer += await client_reader.read(1024)
-                    host = tls_client_hello.get_host()
-                    port = 443
-                    if not host:
-                        raise asyncio.TimeoutError
-                    print_log(f"HTTPS Host: {host}")
-                    connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
-                    proxy_writer.write(connect_request.encode())
+                connection_counter += 1
+                try:
+                    proxy_reader, proxy_writer = await asyncio.open_connection(
+                        proxy_host, proxy_port
+                    )
+                    if client_buffer.startswith(b"\x16\x03"):
+                        tls_client_hello = TLSClientHello(client_buffer)
+                        while tls_client_hello.get_len() > len(client_buffer):
+                            client_buffer += await client_reader.read(1024)
+                        host = tls_client_hello.get_host()
+                        port = 443
+                        if not host:
+                            raise asyncio.TimeoutError
+                        print_log(f"HTTPS Host: {host}")
+                        connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
+                        proxy_writer.write(connect_request.encode())
+                        await proxy_writer.drain()
+                        while True:
+                            data = await proxy_reader.read(1024)
+                            if not data:
+                                break
+                            if data.endswith(b"\r\n\r\n"):
+                                break
+                    else:
+                        for line in client_buffer.split(b"\r\n"):
+                            if line.startswith(b"Host:"):
+                                print_log(f"HTTP  Host: {line[6:].decode()}")
+                                break
+
+                    # Client Hello
+                    proxy_writer.write(client_buffer)
                     await proxy_writer.drain()
-                    while True:
-                        data = await proxy_reader.read(1024)
-                        if not data:
-                            break
-                        if data.endswith(b"\r\n\r\n"):
-                            break
-                else:
-                    for line in client_buffer.split(b"\r\n"):
-                        if line.startswith(b"Host:"):
-                            print_log(f"HTTP  Host: {line[6:].decode()}")
-                            break
 
-                # Client Hello
-                proxy_writer.write(client_buffer)
-                await proxy_writer.drain()
+                    client_to_proxy_task = asyncio.create_task(
+                        relay(client_reader, proxy_writer)
+                    )
+                    proxy_to_client_task = asyncio.create_task(
+                        relay(proxy_reader, client_writer)
+                    )
 
-                client_to_proxy_task = asyncio.create_task(
-                    relay(client_reader, proxy_writer)
-                )
-                proxy_to_client_task = asyncio.create_task(
-                    relay(proxy_reader, client_writer)
-                )
-
-                done, pending = await asyncio.wait(
-                    [
-                        client_to_proxy_task,
-                        proxy_to_client_task,
-                    ],
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-    except asyncio.TimeoutError:
-        pass
+                    done, pending = await asyncio.wait(
+                        [
+                            client_to_proxy_task,
+                            proxy_to_client_task,
+                        ],
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                finally:
+                    proxy_writer.close()
+                    await proxy_writer.wait_closed()
+                    connection_counter -= 1
     finally:
         client_writer.close()
         await client_writer.wait_closed()
-        proxy_writer.close()
-        await proxy_writer.wait_closed()
-        connection_counter -= 1
 
 
 async def start_listening():
