@@ -126,19 +126,27 @@ class TLSClientHello:
         return self.tls_body_len + 5
 
 
+async def send(writer: asyncio.StreamWriter, data: bytes):
+    writer.write(data)
+    await writer.drain()
+
+
+async def close(writer: asyncio.StreamWriter):
+    writer.close()
+    await writer.wait_closed()
+
+
 async def relay(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     try:
         while True:
             data = await reader.read(1024)
             if not data:
                 break
-            writer.write(data)
-            await writer.drain()
-    except Exception as e:
+            await send(writer, data)
+    except Exception:
         pass
     finally:
-        writer.close()
-        await writer.wait_closed()
+        await close(writer)
 
 
 async def handle_client(
@@ -152,7 +160,7 @@ async def handle_client(
 
         if client_buffer:
             if client_buffer == b"\n\n":  # \n\n是nc命令发送的字串
-                client_writer.write(b"Hello DSXTP.")
+                await send(client_writer, b"Hello DSXTP.")
                 heartbeat_time = 0
             else:
                 connection_counter += 1
@@ -170,8 +178,7 @@ async def handle_client(
                             return
                         print_log(f"HTTPS Host: {host}")
                         connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
-                        proxy_writer.write(connect_request.encode())
-                        await proxy_writer.drain()
+                        await send(proxy_writer, connect_request.encode())
                         while True:
                             data = await proxy_reader.read(1024)
                             if not data:
@@ -185,30 +192,20 @@ async def handle_client(
                                 break
 
                     # Client Hello
-                    proxy_writer.write(client_buffer)
-                    await proxy_writer.drain()
-
-                    client_to_proxy_task = asyncio.create_task(
-                        relay(client_reader, proxy_writer)
-                    )
-                    proxy_to_client_task = asyncio.create_task(
-                        relay(proxy_reader, client_writer)
-                    )
+                    await send(proxy_writer, client_buffer)
 
                     done, pending = await asyncio.wait(
                         [
-                            client_to_proxy_task,
-                            proxy_to_client_task,
+                            asyncio.create_task(relay(client_reader, proxy_writer)),
+                            asyncio.create_task(relay(proxy_reader, client_writer)),
                         ],
                         return_when=asyncio.FIRST_COMPLETED,
                     )
                 finally:
-                    proxy_writer.close()
-                    await proxy_writer.wait_closed()
+                    await close(proxy_writer)
                     connection_counter -= 1
     finally:
-        client_writer.close()
-        await client_writer.wait_closed()
+        await close(client_writer)
 
 
 async def start_listening():
