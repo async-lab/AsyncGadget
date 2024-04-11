@@ -167,7 +167,7 @@ async def handle_client(
                         host = tls_client_hello.get_host()
                         port = 443
                         if not host:
-                            raise asyncio.TimeoutError
+                            return
                         print_log(f"HTTPS Host: {host}")
                         connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
                         proxy_writer.write(connect_request.encode())
