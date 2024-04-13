@@ -69,6 +69,9 @@ function MAIN() {
     if [ "$current_version" != "$latest_version" ]; then
         LOG "当前版本:$current_version, 检测到新版本: $latest_version..."
         LOG "下载新版本..."
+
+        rm -rf "$TEMP_FILE"
+
         local is_successful=$(RETURN_AS_OUTPUT CURL -H "Accept:application/octet-stream" -o "$TEMP_FILE" "https://api.github.com/repos/$OWNER/$REPO/releases/assets/$latest_version")
 
         if [ "$is_successful" -eq 0 ]; then
