@@ -32,7 +32,11 @@ TEMP_FILE="$3"
 ##############################################
 
 function CURL() {
-    curl -s -L -H "Authorization: Bearer $PAT" "$@"
+    if [ -z "$PAT" ]; then
+        curl -s -L "$@"
+    else
+        curl -s -L -H "Authorization: Bearer $PAT" "$@"
+    fi
 }
 
 function EXIT() {
