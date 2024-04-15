@@ -39,6 +39,18 @@ function CURL() {
     fi
 }
 
+function RESTART_SERVICE() {
+    if ! systemctl restart "$SERVICE_NAME"; then
+        return 1
+    fi
+
+    if ! systemctl status --no-pager "$SERVICE_NAME"; then
+        return 1
+    fi
+
+    return 0
+}
+
 function EXIT() {
     exit "$@"
 }
@@ -81,14 +93,23 @@ function MAIN() {
         if [ "$is_successful" -eq 0 ]; then
             LOG "下载完成!"
             echo "$latest_version" >./version
+            mv "$JAR_FILE" "$JAR_FILE.bak"
             mv "$TEMP_FILE" "$JAR_FILE"
             if [ -n "$SERVICE_NAME" ]; then
                 LOG "重启服务..."
-                if systemctl restart "$SERVICE_NAME"; then
-                    LOG "服务重启成功!"
-                else
+                if ! RESTART_SERVICE; then
                     LOG "服务重启失败!"
+                    LOG "重启上一版本……"
+                    mv "$JAR_FILE.bak" "$JAR_FILE"
+                    if ! RESTART_SERVICE; then
+                        LOG "重启上一版本失败!"
+                    else
+                        LOG "重启上一版本成功!"
+                    fi
+                    EXIT 1
                 fi
+
+                LOG "服务重启成功!"
             fi
         else
             LOG "下载失败!"
