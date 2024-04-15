@@ -109,6 +109,7 @@ function MAIN() {
                     EXIT 1
                 fi
 
+                rm -rf "$JAR_FILE.bak"
                 LOG "服务重启成功!"
             fi
         else
