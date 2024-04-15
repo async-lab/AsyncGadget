@@ -92,7 +92,7 @@ function MAIN() {
 
         if [ "$is_successful" -eq 0 ]; then
             LOG "下载完成!"
-            echo "$latest_version" >./version
+
             mv "$JAR_FILE" "$JAR_FILE.bak"
             mv "$TEMP_FILE" "$JAR_FILE"
             if [ -n "$SERVICE_NAME" ]; then
@@ -110,6 +110,7 @@ function MAIN() {
                 fi
 
                 rm -rf "$JAR_FILE.bak"
+                echo "$latest_version" >./version
                 LOG "服务重启成功!"
             fi
         else
