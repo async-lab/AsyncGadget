@@ -22,6 +22,8 @@ TABLE_NAME="dsxtp"
 
 SLEEP_INTERVAL=5
 
+TIMEOUT=5
+
 SELF_ADDR="192.168.2.1"
 
 INTERFACE="br-lan"
@@ -43,7 +45,7 @@ function EXIT() {
 
 function CHECK_PROXY() {
 	for i in seq $1; do
-		local is_working=$(RETURN_AS_OUTPUT curl -x http://$PROXY_ADDR:$PROXY_PORT https://google.com)
+		local is_working=$(RETURN_AS_OUTPUT curl -m "$TIMEOUT" -x http://$PROXY_ADDR:$PROXY_PORT https://google.com)
 		if [ "$is_working" -eq 0 ]; then
 			return 0
 		fi
