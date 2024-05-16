@@ -205,7 +205,6 @@ async def handle_client(
                             if line.startswith(b"Host:"):
                                 host = line[6:].decode().split(":")[0]
                                 print_log(f"HTTP  Host: {host}")
-                                break
                             elif line.startswith(b"Proxy-Connection:"):
                                 isTunnelRequest = True
                         if not isTunnelRequest:
