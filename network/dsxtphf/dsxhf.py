@@ -199,7 +199,7 @@ async def handle_client(
 
                     else:
                         host = None
-                        port = 443
+                        port = 80
                         isTunnelRequest = False
                         for line in client_buffer.split(b"\r\n"):
                             if line.startswith(b"Host:"):
