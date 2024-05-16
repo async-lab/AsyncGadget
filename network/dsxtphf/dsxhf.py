@@ -155,7 +155,7 @@ async def establishProxyConnection(
     host: str,
     port: int,
 ):
-    connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
+    connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}:{port}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
     await send(proxy_writer, connect_request.encode())
     while True:
         data = await proxy_reader.read(1024)
