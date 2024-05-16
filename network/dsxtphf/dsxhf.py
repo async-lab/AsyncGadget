@@ -149,6 +149,22 @@ async def relay(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         await close(writer)
 
 
+async def establishConnection(
+    proxy_reader: asyncio.StreamReader,
+    proxy_writer: asyncio.StreamWriter,
+    host: str,
+    port: int,
+):
+    connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
+    await send(proxy_writer, connect_request.encode())
+    while True:
+        data = await proxy_reader.read(1024)
+        if not data:
+            break
+        if data.endswith(b"\r\n\r\n"):
+            break
+
+
 async def handle_client(
     client_reader: asyncio.StreamReader, client_writer: asyncio.StreamWriter
 ):
@@ -177,14 +193,7 @@ async def handle_client(
                         if not host:
                             return
                         print_log(f"HTTPS Host: {host}")
-                        connect_request = f"CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\nProxy-Connection: Keep-Alive\r\n\r\n"
-                        await send(proxy_writer, connect_request.encode())
-                        while True:
-                            data = await proxy_reader.read(1024)
-                            if not data:
-                                break
-                            if data.endswith(b"\r\n\r\n"):
-                                break
+                        establishConnection(proxy_reader, proxy_writer, host, port)
                     else:
                         for line in client_buffer.split(b"\r\n"):
                             if line.startswith(b"Host:"):
