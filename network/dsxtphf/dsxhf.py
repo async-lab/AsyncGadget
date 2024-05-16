@@ -198,11 +198,22 @@ async def handle_client(
                         )
 
                     else:
+                        host = None
+                        port = 443
+                        isTunnelRequest = False
                         for line in client_buffer.split(b"\r\n"):
                             if line.startswith(b"Host:"):
                                 host = line[6:].decode().split(":")[0]
                                 print_log(f"HTTP  Host: {host}")
                                 break
+                            elif line.startswith(b"Proxy-Connection:"):
+                                isTunnelRequest = True
+                        if not host:
+                            return
+                        if not isTunnelRequest:
+                            await establishProxyConnection(
+                                proxy_reader, proxy_writer, host, port
+                            )
 
                     # Client Hello
                     await send(proxy_writer, client_buffer)
