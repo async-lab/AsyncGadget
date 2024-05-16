@@ -208,9 +208,9 @@ async def handle_client(
                                 break
                             elif line.startswith(b"Proxy-Connection:"):
                                 isTunnelRequest = True
-                        if not host:
-                            return
                         if not isTunnelRequest:
+                            if not host:
+                                return
                             await establishProxyConnection(
                                 proxy_reader, proxy_writer, host, port
                             )
