@@ -171,6 +171,9 @@ async def handle_client(
     global connection_counter
     global heartbeat_time
 
+    host = None
+    port = None
+
     try:
         client_buffer = await client_reader.read(1024)
 
@@ -193,14 +196,18 @@ async def handle_client(
                         if not host:
                             return
                         print_log(f"HTTPS Host: {host}")
-                        await establishConnection(
-                            proxy_reader, proxy_writer, host, port
-                        )
                     else:
                         for line in client_buffer.split(b"\r\n"):
                             if line.startswith(b"Host:"):
-                                print_log(f"HTTP  Host: {line[6:].decode()}")
+                                host = line[6:].decode().split(":")[0]
+                                port = int(line[6:].decode().split(":")[1])
+                                print_log(f"HTTP  Host: {host}")
                                 break
+
+                    if host is None or port is None:
+                        return
+
+                    await establishConnection(proxy_reader, proxy_writer, host, port)
 
                     # Client Hello
                     await send(proxy_writer, client_buffer)
