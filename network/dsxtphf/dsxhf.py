@@ -193,7 +193,9 @@ async def handle_client(
                         if not host:
                             return
                         print_log(f"HTTPS Host: {host}")
-                        establishConnection(proxy_reader, proxy_writer, host, port)
+                        await establishConnection(
+                            proxy_reader, proxy_writer, host, port
+                        )
                     else:
                         for line in client_buffer.split(b"\r\n"):
                             if line.startswith(b"Host:"):
