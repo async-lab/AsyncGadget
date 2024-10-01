@@ -3,7 +3,7 @@
 
 ##############################################
 
-DIR=$(readlink -f "$(dirname "$0")")
+DIR="$(readlink -f "$(dirname "$0")")"
 
 export ROOT_DIR="$DIR"
 
