@@ -5,7 +5,7 @@
 # 使用source加载
 # 请在当前目录加载该脚本
 
-ROOT_DIR="$(pwd)"
+export ROOT_DIR="$(pwd)"
 
 if [ ! -f "$ROOT_DIR/base/IO.sh" ] || [ ! -f "$ROOT_DIR/base/JSON.sh" ] || [ ! -f "$ROOT_DIR/base/UTIL.sh" ]; then
     echo "请在仓库根目录加载该脚本!"
