@@ -9,12 +9,10 @@
 MODULE_NAME="cert_sync_bot"
 
 DIR="$(readlink -f "$(dirname "$0")")"
-
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/IO.sh"
 source "$ROOT_DIR/base/LOG.sh"
-source "$ROOT_DIR/base/JSON.sh"
 source "$ROOT_DIR/base/UTIL.sh"
 
 ##############################################
@@ -43,6 +41,10 @@ function CURL() {
         -d "$3"
 }
 
+function INSERT_TO_JSON() {
+    echo "$1" | jq -r ".\"$2\"=\"$3\""
+}
+
 ##############################################
 
 function INIT_VAULT_TOKEN() {
@@ -51,6 +53,13 @@ function INIT_VAULT_TOKEN() {
 }
 
 function UPLOAD_CERTIFICATE() {
+    if [ ! -f "$CERT_FILE" ]; then
+        LOG "证书文件不存在!"
+        return
+    elif [ ! -f "$PRIVKEY_FILE" ]; then
+        LOG "私钥文件不存在!"
+        return
+    fi
     local result=$(CURL "GET" "$VAULT_CERTIFICATE_PATH")
     local data=$(echo "$result" | jq -r .data.data)
     data=$(INSERT_TO_JSON "$data" "${DOMAIN}.cert" "$(cat "$CERT_FILE")")
@@ -62,6 +71,8 @@ function DOWNLOAD_CERTIFICATE() {
     local result=$(CURL "GET" "$VAULT_CERTIFICATE_PATH")
     local cert=$(echo "$result" | jq -r .data.data.\""$DOMAIN".cert\")
     local privkey=$(echo "$result" | jq -r .data.data.\""$DOMAIN".privkey\")
+    mkdir -p "$(dirname "$CERT_FILE")"
+    mkdir -p "$(dirname "$PRIVKEY_FILE")"
     echo "$cert" >"$CERT_FILE"
     echo "$privkey" >"$PRIVKEY_FILE"
 }
@@ -82,12 +93,32 @@ function USAGE() {
     LOG "cert_sync_bot.sh <DOWNLOAD/UPLOAD> <域名> <证书文件> <私钥文件>"
 }
 
+function CHECK_PACKAGES() {
+    local packages=("jq" "jo")
+    local completed=0
+    for package in "${packages[@]}"; do
+        if ! CHECK_PACKAGE "$package"; then
+            LOG "未安装 $package"
+            completed=1
+        fi
+    done
+    return "$completed"
+}
+
 function CHECK_PARAMS() {
-    CHECK_IF_ALL_EXIST "$VAULT_HOST" "$VAULT_CERTIFICATE_PATH" "$VAULT_CERTIFICATE_PATH" "$PASSWORD" "$DOMAIN" "$CERT_FILE" "$PRIVKEY_FILE"
+    CHECK_IF_ALL_EXIST "$VAULT_HOST" "$VAULT_CERTIFICATE_PATH" "$VAULT_CERTIFICATE_PATH" "$PASSWORD" "$METHOD" "$DOMAIN" "$CERT_FILE" "$PRIVKEY_FILE"
+    if [ "$METHOD" != "DOWNLOAD" ] && [ "$METHOD" != "UPLOAD" ]; then
+        return 1
+    fi
+    return "$?"
 }
 
 function MAIN() {
-    if [ "$(CHECK_PARAMS)" -eq 1 ]; then
+    if ! CHECK_PACKAGES; then
+        EXIT 1
+    fi
+
+    if ! CHECK_PARAMS; then
         USAGE
         EXIT 1
     fi
@@ -96,24 +127,28 @@ function MAIN() {
 
     INIT_VAULT_TOKEN
 
-    if [ "$METHOD" == "UPLOAD" ]; then
+    case "$METHOD" in
+    "UPLOAD")
         LOG "上传中..."
         UPLOAD_CERTIFICATE
         LOG "上传完成!"
         LOG "域名: $DOMAIN"
         LOG "cert文件路径: $CERT_FILE"
         LOG "privkey文件路径: $PRIVKEY_FILE"
-    elif [ "$METHOD" == "DOWNLOAD" ]; then
+        ;;
+    "DOWNLOAD")
         LOG "下载中..."
         DOWNLOAD_CERTIFICATE
         LOG "下载完成!"
         LOG "域名: $DOMAIN"
         LOG "cert文件路径: $CERT_FILE"
         LOG "privkey文件路径: $PRIVKEY_FILE"
-    else
+        ;;
+    *)
         USAGE
         EXIT 1
-    fi
+        ;;
+    esac
 
     EXIT 0
 }

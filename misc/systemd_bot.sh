@@ -8,7 +8,6 @@
 MODULE_NAME="systemd_bot"
 
 DIR=$(readlink -f "$(dirname "$0")")
-
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/IO.sh"
@@ -85,10 +84,11 @@ function USAGE() {
 
 function CHECK_PARAMS() {
     CHECK_IF_ALL_EXIST "$METHOD" "$TYPE" "$NAME"
+    return "$?"
 }
 
 function MAIN() {
-    if [ "$(CHECK_PARAMS)" -eq 1 ]; then
+    if ! CHECK_PARAMS; then
         USAGE
         EXIT 1
     fi

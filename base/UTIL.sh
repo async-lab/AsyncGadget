@@ -5,11 +5,9 @@
 function CHECK_IF_ALL_EXIST() {
     for arg in "$@"; do
         if [ -z "$arg" ]; then
-            echo 1
             return 1
         fi
     done
-    echo 0
     return 0
 }
 
@@ -17,11 +15,9 @@ function CHECK_IF_ALL_EXIST() {
 function CHECK_IF_ALL_NULL() {
     for arg in "$@"; do
         if [ -n "$arg" ]; then
-            echo 1
             return 1
         fi
     done
-    echo 0
     return 0
 }
 
@@ -32,4 +28,23 @@ function NOT() {
     else
         echo 0
     fi
+}
+
+# 检查包是否存在
+function CHECK_PACKAGE() {
+    if command -v dpkg >/dev/null 2>&1; then
+        dpkg -l | grep -qw "$1"
+    elif command -v rpm >/dev/null 2>&1; then
+        rpm -q "$1" >/dev/null 2>&1
+    elif command -v brew >/dev/null 2>&1; then
+        brew list "$1" >/dev/null 2>&1
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Qs "$1" >/dev/null 2>&1
+    elif command -v pkg >/dev/null 2>&1; then
+        pkg info "$1" >/dev/null 2>&1
+    else
+        return 1
+    fi
+
+    return "$?"
 }

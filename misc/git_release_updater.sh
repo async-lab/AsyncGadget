@@ -9,12 +9,10 @@
 MODULE_NAME="git_release_updater"
 
 DIR="$(readlink -f "$(dirname "$0")")"
-
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/IO.sh"
 source "$ROOT_DIR/base/LOG.sh"
-source "$ROOT_DIR/base/JSON.sh"
 source "$ROOT_DIR/base/UTIL.sh"
 
 ##############################################
@@ -67,10 +65,11 @@ function USAGE() {
 
 function CHECK_PARAMS() {
     CHECK_IF_ALL_EXIST "$OWNER" "$REPO"
+    return "$?"
 }
 
 function MAIN() {
-    if [ "$(CHECK_PARAMS)" -eq 1 ]; then
+    if ! CHECK_PARAMS; then
         USAGE
         EXIT 1
     fi
