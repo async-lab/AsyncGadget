@@ -63,6 +63,7 @@ function MAIN() {
         while true; do
             buffer="$(HIDE_CURSOR)"
             buffer+="$(ASCII_ART)      [ $(date +"%F %T") ]"$'\n'
+            buffer+="————————————————————————————————————————————————————————————————————————————————————————"$'\n'
             buffer+=$'\n'
             buffer+="$(tail -n "$SHOW_LINES" "/var/log/$SHOW_MODULE_NAME.log")"
             CLEAR
