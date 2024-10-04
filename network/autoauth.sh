@@ -33,9 +33,13 @@ ACCOUNTS=()
 
 function CHECH_NETWORK() {
     local interface="$1"
-
-    ping -I "$interface" -W "$CHECK_TIMEOUT" -c "$CHECK_RETRY" "$CHECK_IP" >/dev/null
-    return $?
+    if ping -I "$interface" -W "$CHECK_TIMEOUT" -c 1 "$CHECK_IP" >/dev/null; then
+        return 0
+    elif ping -I "$interface" -W "$CHECK_TIMEOUT" -c "$CHECK_RETRY" "$CHECK_IP" >/dev/null; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 ##############################################
