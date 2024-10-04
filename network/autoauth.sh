@@ -151,15 +151,15 @@ function CHECK_PARAMS() {
 }
 
 function ASCII_ART() {
-    printf '%s\n' ''
-    printf '%s\n' ' ________  ___  ___  _________  ________  ________  ___  ___  _________  ___  ___      '
-    printf '%s\n' '|\   __  \|\  \|\  \|\___   ___\\   __  \|\   __  \|\  \|\  \|\___   ___\\  \|\  \     '
-    printf '%s\n' '\ \  \|\  \ \  \\\  \|___ \  \_\ \  \|\  \ \  \|\  \ \  \\\  \|___ \  \_\ \  \\\  \    '
-    printf '%s\n' ' \ \   __  \ \  \\\  \   \ \  \ \ \  \\\  \ \   __  \ \  \\\  \   \ \  \ \ \   __  \   '
-    printf '%s\n' '  \ \  \ \  \ \  \\\  \   \ \  \ \ \  \\\  \ \  \ \  \ \  \\\  \   \ \  \ \ \  \ \  \  '
-    printf '%s\n' '   \ \__\ \__\ \_______\   \ \__\ \ \_______\ \__\ \__\ \_______\   \ \__\ \ \__\ \__\ '
-    printf '%s\n' '    \|__|\|__|\|_______|    \|__|  \|_______|\|__|\|__|\|_______|    \|__|  \|__|\|__| '
-    printf '%s\n' ''
+    LOG
+    LOG ' ________  ___  ___  _________  ________  ________  ___  ___  _________  ___  ___      '
+    LOG '|\   __  \|\  \|\  \|\___   ___\\   __  \|\   __  \|\  \|\  \|\___   ___\\  \|\  \     '
+    LOG '\ \  \|\  \ \  \\\  \|___ \  \_\ \  \|\  \ \  \|\  \ \  \\\  \|___ \  \_\ \  \\\  \    '
+    LOG ' \ \   __  \ \  \\\  \   \ \  \ \ \  \\\  \ \   __  \ \  \\\  \   \ \  \ \ \   __  \   '
+    LOG '  \ \  \ \  \ \  \\\  \   \ \  \ \ \  \\\  \ \  \ \  \ \  \\\  \   \ \  \ \ \  \ \  \  '
+    LOG '   \ \__\ \__\ \_______\   \ \__\ \ \_______\ \__\ \__\ \_______\   \ \__\ \ \__\ \__\ '
+    LOG '    \|__|\|__|\|_______|    \|__|  \|_______|\|__|\|__|\|_______|    \|__|  \|__|\|__| '
+    LOG
 }
 
 function MAIN() {
@@ -172,7 +172,7 @@ function MAIN() {
     LOG "循环睡眠时间:         $SLEEP_TIME"
     LOG "挤占等待时间:         $WAIT_TIME"
 
-    LOG "$(ASCII_ART)"
+    "$(ASCII_ART)"
 
     LOG "启动……"
 
@@ -180,12 +180,17 @@ function MAIN() {
 
     LOG "macvlan数量: $macvlan_num"
 
+    local all_online=1
+
     while true; do
         LOAD_ACCOUNTS
+
+        local has_offline=1
 
         for i in $(seq 1 "$macvlan_num"); do
             local interface="macvlan$i"
             if ! CHECH_NETWORK "$interface"; then
+                has_offline=0
                 LOG "接口 $interface 无网络连接"
                 local has_auth=1
                 for ((j = 0; j < ${#ACCOUNTS[@]}; j++)); do
@@ -218,6 +223,16 @@ function MAIN() {
                 fi
             fi
         done
+
+        if [ "$has_offline" -eq 1 ]; then
+            if [ "$all_online" -eq 1 ]; then
+                LOG "所有接口上线！"
+                all_online=0
+            fi
+        else
+            all_online=1
+        fi
+
         sleep "$SLEEP_TIME"
     done
 
