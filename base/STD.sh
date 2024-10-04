@@ -13,6 +13,7 @@ source "$ROOT_DIR/base/IO.sh"
 source "$ROOT_DIR/base/LOG.sh"
 source "$ROOT_DIR/base/LOGIC.sh"
 source "$ROOT_DIR/base/UTIL.sh"
+source "$ROOT_DIR/base/TERMINAL.sh"
 
 ##############################################
 ################### GLOBAL ###################
@@ -23,24 +24,44 @@ source "$ROOT_DIR/base/UTIL.sh"
 ##############################################
 ################ PROCESSFUNC #################
 
+function DEFAULT_USAGE() {
+    LOG "请输入正确的参数!"
+}
+
+function DEFAULT_EXIT() {
+    if [ -n "$MODULE_NAME" ]; then
+        LOG "正在退出${MODULE_NAME}..."
+    else
+        LOG "正在退出..."
+    fi
+    exit "$@"
+}
+
+function DEFAULT_CHECK_PARAMS() {
+    return 0
+}
+
+function DEFAULT_MAIN() {
+    EXIT 0
+}
+
 ##############################################
 ################ PROGRAMFUNC #################
 
 function USAGE() {
-    LOG "请输入正确的参数!"
+    DEFAULT_USAGE
 }
 
 function EXIT() {
-    LOG "正在退出..."
-    exit "$@"
+    DEFAULT_EXIT "$@"
 }
 
 function CHECK_PARAMS() {
-    return 0
+    return "$(RETURN_AS_OUTPUT DEFAULT_CHECK_PARAMS)"
 }
 
 function MAIN() {
-    EXIT 0
+    DEFAULT_MAIN
 }
 
 trap EXIT SIGINT SIGTERM
