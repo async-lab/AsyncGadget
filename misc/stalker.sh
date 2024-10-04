@@ -78,4 +78,4 @@ function MAIN() {
     EXIT 0
 }
 
-MAIN "$@"
+RUN_MAIN MAIN "$@"

@@ -18,8 +18,24 @@ source "$ROOT_DIR/base/TERMINAL.sh"
 ##############################################
 ################### GLOBAL ###################
 
+MAIN_PID=""
+STD_TMP_FILE=""
+
 ##############################################
 ################# TOOLFUNC ###################
+
+# 说来话长，如果trap了结束信号之后sleep，则这时无法触发trap指定的函数
+# 所以这里将trap和主进程分离，保证trap的有效性
+#
+# 然后是STD_TMP_FILE，因为命令替换和管道都会创建子shell
+# 如果子shell不耗时访问资源还好，耗时的话就会导致主shell结束了子shell还在访问资源
+# 所以用一个文件去存标准输出，就可以在一个shell内完成函数给变量赋值的操作
+function RUN_MAIN() {
+    STD_TMP_FILE="$(mktemp)"
+    "$@" &
+    MAIN_PID="$!"
+    wait "$MAIN_PID"
+}
 
 ##############################################
 ################ PROCESSFUNC #################
@@ -34,6 +50,9 @@ function DEFAULT_EXIT() {
     else
         LOG "正在退出..."
     fi
+    NO_OUTPUT rm -f "$STD_TMP_FILE"
+    NO_OUTPUT kill "$MAIN_PID"
+    NO_OUTPUT wait "$MAIN_PID"
     exit "$@"
 }
 
@@ -64,4 +83,4 @@ function MAIN() {
     DEFAULT_MAIN
 }
 
-trap EXIT SIGINT SIGTERM
+trap EXIT SIGINT SIGTERM SIGALRM

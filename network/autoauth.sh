@@ -146,12 +146,12 @@ function LOAD_ACCOUNTS() {
 
 function USAGE() {
     LOG "用法:"
-    LOG "autoauth.sh <账密文件路径> (循环睡眠时间(秒)) (挤占等待时间(xs,xm,xh))"
+    LOG "autoauth.sh <账密文件路径> [循环睡眠时间(秒)] [挤占等待时间(xs,xm,xh)]"
 }
 
 function CHECK_PARAMS() {
     CHECK_IF_ALL_EXIST "$ACCOUNT_FILE" "$SLEEP_TIME" "$WAIT_TIME"
-    return $?
+    return "$?"
 }
 
 function LOG_ASCII_ART() {
@@ -243,4 +243,4 @@ function MAIN() {
     EXIT 0
 }
 
-MAIN "$@"
+RUN_MAIN MAIN "$@"
