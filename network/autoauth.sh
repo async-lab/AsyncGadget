@@ -224,13 +224,11 @@ function MAIN() {
             fi
         done
 
-        if [ "$has_offline" -eq 1 ]; then
-            if [ "$all_online" -eq 1 ]; then
-                LOG "所有接口上线！"
-                all_online=0
-            fi
-        else
+        if [ "$has_offline" -eq 0 ]; then
             all_online=1
+        elif [ "$all_online" -eq 1 ]; then
+            LOG "所有接口上线！"
+            all_online=0
         fi
 
         sleep "$SLEEP_TIME"
