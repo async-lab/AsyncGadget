@@ -11,10 +11,7 @@ MODULE_NAME="systemd_bot"
 DIR=$(readlink -f "$(dirname "$0")")
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
-source "$ROOT_DIR/base/IO.sh"
-source "$ROOT_DIR/base/LOG.sh"
-source "$ROOT_DIR/base/LOGIC.sh"
-source "$ROOT_DIR/base/UTIL.sh"
+source "$ROOT_DIR/base/STD.sh"
 
 ##############################################
 ################### GLOBAL ###################
@@ -23,6 +20,9 @@ METHOD="$1"
 TYPE="$2"
 NAME="$3"
 PARAM="$4"
+
+##############################################
+################ PROCESSFUNC #################
 
 function CREATE_SERVICE() {
     cat <<EOF >"/etc/systemd/system/$1.service"
@@ -76,10 +76,6 @@ function DELETE_TIMER() {
 
 ##############################################
 ################ PROGRAMFUNC #################
-
-function EXIT() {
-    exit "$@"
-}
 
 function USAGE() {
     LOG "请输入正确的参数!"

@@ -12,10 +12,7 @@ MODULE_NAME="cert_sync_bot"
 DIR="$(readlink -f "$(dirname "$0")")"
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
-source "$ROOT_DIR/base/IO.sh"
-source "$ROOT_DIR/base/LOG.sh"
-source "$ROOT_DIR/base/LOGIC.sh"
-source "$ROOT_DIR/base/UTIL.sh"
+source "$ROOT_DIR/base/STD.sh"
 
 ##############################################
 ################### GLOBAL ###################
@@ -84,10 +81,6 @@ function DOWNLOAD_CERTIFICATE() {
 
 ##############################################
 ################ PROGRAMFUNC #################
-
-function EXIT() {
-    exit "$@"
-}
 
 function USAGE() {
     LOG "环境变量:"
@@ -159,4 +152,4 @@ function MAIN() {
     EXIT 0
 }
 
-MAIN "$@"
+RUN_MAIN MAIN "$@"
