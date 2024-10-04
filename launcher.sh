@@ -16,36 +16,48 @@ AUTOAUTH="$ROOT_DIR/network/autoauth.sh"
 ##############################################
 
 SCRIPT="$1"
+SCRIPT_PID=""
+
+function EXIT() {
+    kill "$SCRIPT_PID"
+    exit "$@"
+}
 
 function MAIN() {
     shift # 移除第一个参数（脚本名）
     if [[ -z "$SCRIPT" ]]; then
         echo "请输入正确的参数!"
         echo "用法: launcher.sh <脚本> <脚本参数>"
-        exit 1
+        EXIT 1
     fi
 
     case "$SCRIPT" in
     "cert_sync_bot")
-        $CERT_SYNC_BOT "$@"
+        $CERT_SYNC_BOT "$@" &
         ;;
     "git_release_updater")
-        $GIT_RELEASE_UPDATER "$@"
+        $GIT_RELEASE_UPDATER "$@" &
         ;;
     "stalker")
-        $STALKER "$@"
+        $STALKER "$@" &
         ;;
     "systemd_bot")
-        $SYSTEMD_BOT "$@"
+        $SYSTEMD_BOT "$@" &
         ;;
     "autoauth")
-        $AUTOAUTH "$@"
+        $AUTOAUTH "$@" &
         ;;
     *)
         echo "未知的脚本名称"
-        exit 1
+        EXIT 1
         ;;
     esac
+
+    SCRIPT_PID="$!"
+    wait "$SCRIPT_PID"
+    EXIT 0
 }
+
+trap EXIT SIGINT SIGTERM
 
 MAIN "$@"
