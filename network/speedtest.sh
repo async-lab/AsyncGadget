@@ -124,7 +124,7 @@ function SPEEDTEST() {
 
     local sum=0
     while read -r speed; do
-        sum=$(echo "$sum + $speed" | bc)
+        sum="$((sum + speed))"
     done <"$TMP_FILE"
     NO_OUTPUT rm -f "$TMP_FILE"
 
