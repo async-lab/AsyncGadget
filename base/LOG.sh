@@ -79,7 +79,7 @@ function SET_LOG_TYPE() {
             STDOUT -n "[ 状态 ] $*"
         }
         ;;
-    "systemd")
+    "file")
         function STDOUT() {
             echo "$@" " "
         }
@@ -95,8 +95,8 @@ function SET_LOG_TYPE() {
     esac
 }
 
-if [ -n "$TERM" ]; then
+if [ -n "$TERM" ] && [ -z "$LOG_IN_FILE" ]; then
     SET_LOG_TYPE "console"
 else
-    SET_LOG_TYPE "systemd"
+    SET_LOG_TYPE "file"
 fi
