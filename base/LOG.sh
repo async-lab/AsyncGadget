@@ -95,7 +95,7 @@ function SET_LOG_TYPE() {
     esac
 }
 
-if [ -z "$INVOCATION_ID" ]; then
+if [ -n "$TERM" ]; then
     SET_LOG_TYPE "console"
 else
     SET_LOG_TYPE "systemd"
