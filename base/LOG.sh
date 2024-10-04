@@ -54,7 +54,7 @@ function STDFILE() {
 ##############################################
 
 function LOG() {
-    STDOUT "[$(date +"%Y-%m-%d %H:%M:%S")] $*"
+    STDOUT "[$(date +"%F %T")] $*"
 }
 
 function STATE() {
@@ -73,7 +73,7 @@ function SET_LOG_TYPE() {
             echo "$@"
         }
         function LOG() {
-            STDOUT "[$(date +"%Y-%m-%d %H:%M:%S")] $*"
+            STDOUT "[$(date +"%F %T")] $*"
         }
         function STATE() {
             STDOUT -n "[ 状态 ] $*"
@@ -85,7 +85,7 @@ function SET_LOG_TYPE() {
         }
         function LOG() {
             STDOUT "$@"
-            STDFILE "[$(date +"%Y-%m-%d %H:%M:%S")] $*"
+            STDFILE "[$(date +"%F %T")] $*"
         }
         function STATE() {
             STDFILE -n "[ 状态 ] $*"
