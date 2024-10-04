@@ -5,6 +5,7 @@
 # 用于从Github拉取Release文件
 
 ##############################################
+################### META #####################
 
 MODULE_NAME="git_release_updater"
 
@@ -13,9 +14,11 @@ export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/IO.sh"
 source "$ROOT_DIR/base/LOG.sh"
+source "$ROOT_DIR/base/LOGIC.sh"
 source "$ROOT_DIR/base/UTIL.sh"
 
 ##############################################
+################### GLOBAL ###################
 
 # env
 # export OWNER="Async-Lab"
@@ -28,6 +31,7 @@ JAR_FILE="$2"
 TEMP_FILE="$3"
 
 ##############################################
+################# TOOLFUNC ###################
 
 function CURL() {
     if [ -z "$PAT" ]; then

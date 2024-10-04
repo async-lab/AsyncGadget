@@ -11,8 +11,7 @@ CERT_SYNC_BOT="$ROOT_DIR/misc/cert_sync_bot.sh"
 GIT_RELEASE_UPDATER="$ROOT_DIR/misc/git_release_updater.sh"
 STALKER="$ROOT_DIR/misc/stalker.sh"
 SYSTEMD_BOT="$ROOT_DIR/misc/systemd_bot.sh"
-DSXTP="$ROOT_DIR/network/dsxtphf/dsxtp.sh"
-DSXHF="$ROOT_DIR/network/dsxtphf/dsxhf.py"
+AUTOAUTH="$ROOT_DIR/network/autoauth.sh"
 
 ##############################################
 
@@ -39,11 +38,8 @@ function MAIN() {
     "systemd_bot")
         $SYSTEMD_BOT "$@"
         ;;
-    "dsxtp")
-        $DSXTP "$@"
-        ;;
-    "dsxhf")
-        $DSXHF "$@"
+    "autoauth")
+        $AUTOAUTH "$@"
         ;;
     *)
         echo "未知的脚本名称"

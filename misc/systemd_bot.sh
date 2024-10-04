@@ -4,6 +4,7 @@
 # 自动创建简单的systemd服务
 
 ##############################################
+################### META #####################
 
 MODULE_NAME="systemd_bot"
 
@@ -12,9 +13,11 @@ export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/IO.sh"
 source "$ROOT_DIR/base/LOG.sh"
+source "$ROOT_DIR/base/LOGIC.sh"
 source "$ROOT_DIR/base/UTIL.sh"
 
 ##############################################
+################### GLOBAL ###################
 
 METHOD="$1"
 TYPE="$2"
@@ -72,6 +75,7 @@ function DELETE_TIMER() {
 }
 
 ##############################################
+################ PROGRAMFUNC #################
 
 function EXIT() {
     exit "$@"

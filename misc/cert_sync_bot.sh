@@ -5,6 +5,7 @@
 # 用于向Vault推送和拉取证书
 
 ##############################################
+################### META #####################
 
 MODULE_NAME="cert_sync_bot"
 
@@ -13,9 +14,11 @@ export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/IO.sh"
 source "$ROOT_DIR/base/LOG.sh"
+source "$ROOT_DIR/base/LOGIC.sh"
 source "$ROOT_DIR/base/UTIL.sh"
 
 ##############################################
+################### GLOBAL ###################
 
 # env
 # export VAULT_HOST="https://vault.internal.asynclab.club:8888/v1"
@@ -31,6 +34,7 @@ PRIVKEY_FILE="$4"
 VAULT_TOKEN=""
 
 ##############################################
+################# TOOLFUNC ###################
 
 function CURL() {
     curl -s -X "$1" \
@@ -46,6 +50,7 @@ function INSERT_TO_JSON() {
 }
 
 ##############################################
+################ PROCESSFUNC #################
 
 function INIT_VAULT_TOKEN() {
     local result=$(jo password="$PASSWORD" | STDIN CURL "POST" "/auth/ldap/login/$USERNAME")
@@ -78,6 +83,7 @@ function DOWNLOAD_CERTIFICATE() {
 }
 
 ##############################################
+################ PROGRAMFUNC #################
 
 function EXIT() {
     exit "$@"

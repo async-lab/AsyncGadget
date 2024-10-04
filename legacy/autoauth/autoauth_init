@@ -1,0 +1,21 @@
+#!/bin/sh /etc/rc.common
+
+# 这是System V服务示例文件
+
+START=99
+STOP=10
+
+start() {
+    # 启动你的脚本
+    echo "Starting my service..."
+    # 使用start-stop-daemon来启动单个认证，示例
+    start-stop-daemon -p /var/run/autoauth/1.pid -S -b -x /root/autoauth/auth.sh 212345497 wowpass123456 0 10 3 macvlan1
+    # start-stop-daemon -p /var/run/autoauth/pid文件名.pid -S -b -x sh脚本位置 用户名 密码 0 10 3 网卡名
+    echo "Service started successfully."
+}
+
+stop() {
+    # 停止你的脚本
+    echo "Stopping my service..."
+    start-stop-daemon -K -n auth.sh
+}
