@@ -24,7 +24,7 @@ CHECK_IP="223.5.5.5"
 AUTH_IP="10.254.241.19"
 ISP_MAPPING=("电信" "移动" "联通" "教育网")
 CHECK_TIMEOUT="3"
-CHECK_RETRY="3"
+CHECK_RETRY="10"
 REQUEST_TIMEOUT="3"
 ACCOUNTS=()
 
@@ -34,7 +34,7 @@ ACCOUNTS=()
 function CHECH_NETWORK() {
     local interface="$1"
 
-    ping -I "$interface" -w "$CHECK_TIMEOUT" -c "$CHECK_RETRY" "$CHECK_IP" >/dev/null
+    ping -I "$interface" -W "$CHECK_TIMEOUT" -c "$CHECK_RETRY" "$CHECK_IP" >/dev/null
     return $?
 }
 
@@ -150,7 +150,7 @@ function CHECK_PARAMS() {
     return $?
 }
 
-function ASCII_ART() {
+function LOG_ASCII_ART() {
     LOG
     LOG ' ________  ___  ___  _________  ________  ________  ___  ___  _________  ___  ___      '
     LOG '|\   __  \|\  \|\  \|\___   ___\\   __  \|\   __  \|\  \|\  \|\___   ___\\  \|\  \     '
@@ -172,7 +172,7 @@ function MAIN() {
     LOG "循环睡眠时间:         $SLEEP_TIME"
     LOG "挤占等待时间:         $WAIT_TIME"
 
-    "$(ASCII_ART)"
+    LOG_ASCII_ART
 
     LOG "启动……"
 
@@ -193,6 +193,7 @@ function MAIN() {
                 has_offline=0
                 LOG "接口 $interface 无网络连接"
                 local has_auth=1
+
                 for ((j = 0; j < ${#ACCOUNTS[@]}; j++)); do
                     local account="${ACCOUNTS[j]}"
                     IFS=',' read -r -a account_arr <<<"$account"
@@ -218,6 +219,7 @@ function MAIN() {
                         break
                     fi
                 done
+
                 if [ "$has_auth" -eq 1 ]; then
                     LOG "接口 $interface 无可用账号"
                 fi
