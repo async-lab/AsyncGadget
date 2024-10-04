@@ -67,7 +67,18 @@ function SET_LOG_TYPE() {
     LOG_TYPE="$1"
 
     case "$LOG_TYPE" in
-    "console") ;;
+    "console")
+        function STDOUT() {
+            echo -ne "\r\033[K"
+            echo "$@"
+        }
+        function LOG() {
+            STDOUT "[$(date +"%Y-%m-%d %H:%M:%S")] $*"
+        }
+        function STATE() {
+            STDOUT -n "[ 状态 ] $*"
+        }
+        ;;
     "systemd")
         function STDOUT() {
             echo "$@" " "
