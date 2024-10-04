@@ -13,6 +13,8 @@ function CHECK_PACKAGE() {
         pacman -Qs "$1" >/dev/null 2>&1
     elif command -v pkg >/dev/null 2>&1; then
         pkg info "$1" >/dev/null 2>&1
+    elif command -v opkg >/dev/null 2>&1; then
+        opkg info "$1" >/dev/null 2>&1
     else
         return 1
     fi
