@@ -191,7 +191,7 @@ function MAIN() {
 
         local has_offline=1
 
-        for i in $(seq 1 "$macvlan_num"); do
+        for ((i = 1; i <= macvlan_num; i++)); do
             local interface="macvlan$i"
             if ! CHECH_NETWORK "$interface"; then
                 has_offline=0
