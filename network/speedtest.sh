@@ -21,7 +21,7 @@ THREAD_NUM="${2:-4}"
 
 TMP_FILE="$(mktemp)"
 
-NODE_CN="https://wirelesscdn-download.xuexi.cn/publish/xuexi_android/latest/xuexi_android_10002068.apk"
+NODE_CN="https://dldir1.qq.com/qqfile/qq/PCQQ9.7.17/QQ9.7.17.29225.exe"
 NODE_HK="http://hkg.download.datapacket.com/100mb.bin"
 NODE_JP="http://tyo.download.datapacket.com/100mb.bin"
 NODE_SG="https://sgp.proof.ovh.net/files/100Mb.dat"
@@ -113,7 +113,7 @@ function SINGLE_THREAD_SPEEDTEST() {
 function SPEEDTEST() {
     local url="$1"
 
-    for _ in $(seq 1 "$THREAD_NUM"); do
+    for ((i = 0; i < THREAD_NUM; i++)); do
         SINGLE_THREAD_SPEEDTEST "$url" >>"$TMP_FILE" &
         PIDS+=("$!")
     done
