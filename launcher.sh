@@ -20,6 +20,7 @@ SCRIPT_PID=""
 
 function EXIT() {
     kill "$SCRIPT_PID"
+    wait "$SCRIPT_PID"
     exit "$@"
 }
 
