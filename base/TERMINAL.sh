@@ -68,11 +68,11 @@ function DECRQTSR() {
 function _CHECK_DECRQTSR() {
     echo -ne "\e[18t" >/dev/tty
     if [ -e "/proc/$$/fd/3" ]; then
-        if ! read -t 0.1 -d 't' -s -r response <&3; then
+        if ! read -t 0.1 -d 't' -s -r response 2>/dev/null <&3; then
             read -t 1 -d 't' -s -r response <&3
         fi
     else
-        if ! read -t 0.1 -d 't' -s -r response; then
+        if ! read -t 0.1 -d 't' -s -r response 2>/dev/null; then
             read -t 1 -d 't' -s -r response
         fi
     fi
