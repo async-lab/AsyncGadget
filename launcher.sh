@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ##############################################
+################### GLOBAL ###################
 
 DIR="$(readlink -f "$(dirname "$0")")"
 
@@ -14,16 +15,20 @@ SYSTEMD_BOT="$ROOT_DIR/misc/systemd_bot.sh"
 AUTOAUTH="$ROOT_DIR/network/autoauth.sh"
 SPEEDTEST="$ROOT_DIR/network/speedtest.sh"
 
-##############################################
+exec 3<&0
 
 SCRIPT="$1"
 SCRIPT_PID=""
+
+##############################################
+################ PROGRAMFUNC #################
 
 # 创建后台进程手动关闭可以防止一些奇怪的情况
 # 直接前台运行它也会创建子shell，有些时候就关不掉
 function EXIT() {
     kill "$SCRIPT_PID" >/dev/null 2>&1
     wait "$SCRIPT_PID" >/dev/null 2>&1
+    echo $LINES
     exit "$@"
 }
 

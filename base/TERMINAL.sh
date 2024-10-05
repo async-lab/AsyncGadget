@@ -24,3 +24,21 @@ function DISABLE_ECHO() {
 function ENABLE_ECHO() {
     echo -ne "\e[0m"
 }
+
+function DECRQTSR() {
+    echo -ne "\e[18t" >/dev/tty
+    if [ -e "/proc/$$/fd/3" ]; then
+        read -d 't' -s -r response <&3
+    else
+        read -d 't' -s -r response
+    fi
+    echo "$response"
+}
+
+function GET_LINES() {
+    DECRQTSR | cut -d';' -f2
+}
+
+function GET_COLUMNS() {
+    DECRQTSR | cut -d';' -f3
+}

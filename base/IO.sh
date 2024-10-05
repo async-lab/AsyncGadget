@@ -22,3 +22,12 @@ function STDIN() {
     "$@" "${params[@]}"
     return "$?"
 }
+
+function CHECK_FD() {
+    local fd="$1"
+    if [ -e "/proc/$$/fd/$fd" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
