@@ -55,7 +55,7 @@ function MAIN() {
 
     if ! CHECK_PARAMS; then
         USAGE
-        EXIT 1
+        DEFAULT_EXIT 1
     fi
 
     if [ -f "/var/log/$SHOW_MODULE_NAME.log" ]; then
@@ -64,7 +64,7 @@ function MAIN() {
         file_path="$SHOW_MODULE_NAME"
     else
         LOG "日志文件不存在!"
-        EXIT 1
+        DEFAULT_EXIT 1
     fi
 
     CLEAR
@@ -80,6 +80,7 @@ function MAIN() {
         fi
     done
     CLEAR
+
     EXIT 0
 }
 
