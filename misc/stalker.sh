@@ -32,7 +32,7 @@ function USAGE() {
 function EXIT() {
     ENABLE_ECHO
     SHOW_CURSOR
-    clear
+    CLEAR
     DEFAULT_EXIT "$@"
 }
 
