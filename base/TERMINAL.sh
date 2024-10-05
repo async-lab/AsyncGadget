@@ -68,9 +68,13 @@ function DECRQTSR() {
 function _CHECK_DECRQTSR() {
     echo -ne "\e[18t" >/dev/tty
     if [ -e "/proc/$$/fd/3" ]; then
-        read -t 1 -d 't' -s -r response <&3
+        if ! read -t 0.1 -d 't' -s -r response <&3; then
+            read -t 1 -d 't' -s -r response <&3
+        fi
     else
-        read -t 1 -d 't' -s -r response
+        if ! read -t 0.1 -d 't' -s -r response; then
+            read -t 1 -d 't' -s -r response
+        fi
     fi
     if [ -n "$response" ]; then
         return 0
@@ -79,8 +83,8 @@ function _CHECK_DECRQTSR() {
     fi
 }
 
-WINDOW_LINES_SOURCE="CONST"
-WINDOW_COLUMNS_SOURCE="CONST"
+WINDOW_LINES_SOURCE="DECRQTSR"
+WINDOW_COLUMNS_SOURCE="DECRQTSR"
 
 if [ -n "$(tput lines 2>/dev/null)" ]; then
     WINDOW_LINES_SOURCE="TPUT"
@@ -89,6 +93,8 @@ elif _CHECK_DECRQTSR; then
 elif [ -n "$LINES" ]; then
     WINDOW_LINES_SOURCE="ENV"
 fi
+
+_CHECK_DECRQTSR
 
 if [ -n "$(tput cols 2>/dev/null)" ]; then
     WINDOW_COLUMNS_SOURCE="TPUT"
