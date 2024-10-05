@@ -63,7 +63,7 @@ function GET_SHOW() {
         show_cmd="tail -n ${show_lines} ${SHOW_SOURCE}"
     fi
 
-    local raw_result="$($show_cmd)"
+    local raw_result="$($show_cmd 2>&1)"
     local result=""
 
     local total_lines=0
