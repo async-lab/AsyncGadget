@@ -21,13 +21,13 @@ SHOW_SOURCE="$1"
 ##############################################
 ################# TOOLFUNC ###################
 
+##############################################
+################ PROGRAMFUNC #################
+
 function USAGE() {
     LOG "请输入正确的参数!"
     LOG "用法: stalker.sh <模块名称/文件路径/命令>"
 }
-
-##############################################
-################ PROGRAMFUNC #################
 
 function EXIT() {
     ENABLE_ECHO
@@ -49,7 +49,7 @@ function GET_SHOW() {
     IFS=, read -r lines columns <"$DATA_TMP_FILE"
     if [ "$lines" -ne "$window_lines" ] || [ "$columns" -ne "$window_columns" ]; then
         echo "$window_lines,$window_columns" >"$DATA_TMP_FILE"
-        clear
+        CLEAR
     fi
 
     local show_lines="$((window_lines - 7))"
@@ -105,20 +105,20 @@ function MAIN() {
 
     echo "$(GET_LINES),$(GET_COLUMNS)" >"$DATA_TMP_FILE"
 
-    clear
+    CLEAR
     while true; do
         local content="$(GET_SHOW)"
-        buffer="$(CLEAR)$(ENABLE_ECHO)$(HIDE_CURSOR)"
+        buffer="$(ENABLE_ECHO)$(HIDE_CURSOR)"
         buffer+="$(ASCII_ART)      [ $(date +"%F %T") ]"$'\n'
-        buffer+="————————————————————————————————————————————————————————————————————————————————————————"$'\n'
-        buffer+=$'\n'
-        buffer+="${content}$(DISABLE_ECHO)"
-        echo "$buffer"
+        buffer+="—————————————————————————————————————————————————————————————————————————————————————————"$'\n'$'\n'
+        buffer+="${content}"
+        buffer+="$(DISABLE_ECHO)"
+        SMOOTH_ECHO -n "$buffer"
         if ! NO_OUTPUT sleep 0.1; then
             sleep 1
         fi
     done
-    clear
+    CLEAR
 
     EXIT 0
 }
