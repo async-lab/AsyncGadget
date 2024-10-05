@@ -83,21 +83,31 @@ function _CHECK_DECRQTSR() {
     fi
 }
 
+function _GET_STTY_SIZE() {
+    if [ -e "/proc/$$/fd/3" ]; then
+        stty size <&3 2>/dev/null
+    else
+        stty size 2>/dev/null
+    fi
+}
+
 WINDOW_LINES_SOURCE="CONST"
 WINDOW_COLUMNS_SOURCE="CONST"
 
 if [ -n "$(tput lines 2>/dev/null)" ]; then
     WINDOW_LINES_SOURCE="TPUT"
+elif [ -n "$(_GET_STTY_SIZE | cut -d' ' -f1)" ]; then
+    WINDOW_LINES_SOURCE="STTY"
 elif _CHECK_DECRQTSR; then
     WINDOW_LINES_SOURCE="DECRQTSR"
 elif [ -n "$LINES" ]; then
     WINDOW_LINES_SOURCE="ENV"
 fi
 
-_CHECK_DECRQTSR
-
 if [ -n "$(tput cols 2>/dev/null)" ]; then
     WINDOW_COLUMNS_SOURCE="TPUT"
+elif [ -n "$(_GET_STTY_SIZE | cut -d' ' -f2)" ]; then
+    WINDOW_COLUMNS_SOURCE="STTY"
 elif _CHECK_DECRQTSR; then
     WINDOW_COLUMNS_SOURCE="DECRQTSR"
 elif [ -n "$COLUMNS" ]; then
@@ -108,6 +118,9 @@ function GET_LINES() {
     case "$WINDOW_LINES_SOURCE" in
     "TPUT")
         tput lines 2>/dev/null
+        ;;
+    "STTY")
+        _GET_STTY_SIZE | cut -d' ' -f1
         ;;
     "DECRQTSR")
         DECRQTSR | cut -d';' -f2
@@ -125,6 +138,9 @@ function GET_COLUMNS() {
     case "$WINDOW_COLUMNS_SOURCE" in
     "TPUT")
         tput cols 2>/dev/null
+        ;;
+    "STTY")
+        _GET_STTY_SIZE | cut -d' ' -f2
         ;;
     "DECRQTSR")
         DECRQTSR | cut -d';' -f1
