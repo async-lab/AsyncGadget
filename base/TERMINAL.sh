@@ -16,3 +16,11 @@ function HIDE_CURSOR() {
 function SHOW_CURSOR() {
     echo -ne "\e[?25h"
 }
+
+function DISABLE_ECHO() {
+    echo -ne "\033[8m"
+}
+
+function ENABLE_ECHO() {
+    echo -ne "\e[0m"
+}
