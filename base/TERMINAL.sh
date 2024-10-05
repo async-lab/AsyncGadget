@@ -58,43 +58,76 @@ function SMOOTH_ECHO() {
 function DECRQTSR() {
     echo -ne "\e[18t" >/dev/tty
     if [ -e "/proc/$$/fd/3" ]; then
-        read -t 1 -d 't' -s -r response <&3
+        read -d 't' -s -r response <&3
     else
-        read -t 1 -d 't' -s -r response
+        read -d 't' -s -r response
     fi
     echo "$response"
 }
 
+function _CHECK_DECRQTSR() {
+    echo -ne "\e[18t" >/dev/tty
+    if [ -e "/proc/$$/fd/3" ]; then
+        read -t 1 -d 't' -s -r response <&3
+    else
+        read -t 1 -d 't' -s -r response
+    fi
+    if [ -n "$response" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+WINDOW_LINES_SOURCE="CONST"
+WINDOW_COLUMNS_SOURCE="CONST"
+
+if [ -n "$(tput lines 2>/dev/null)" ]; then
+    WINDOW_LINES_SOURCE="TPUT"
+elif _CHECK_DECRQTSR; then
+    WINDOW_LINES_SOURCE="DECRQTSR"
+elif [ -n "$LINES" ]; then
+    WINDOW_LINES_SOURCE="ENV"
+fi
+
+if [ -n "$(tput cols 2>/dev/null)" ]; then
+    WINDOW_COLUMNS_SOURCE="TPUT"
+elif _CHECK_DECRQTSR; then
+    WINDOW_COLUMNS_SOURCE="DECRQTSR"
+elif [ -n "$COLUMNS" ]; then
+    WINDOW_COLUMNS_SOURCE="ENV"
+fi
+
 function GET_LINES() {
-    local lines=""
-    if [ -z "$lines" ]; then
-        lines=$(tput lines 2>/dev/null)
-    fi
-    if [ -z "$lines" ]; then
-        lines="$(DECRQTSR | cut -d';' -f2)"
-    fi
-    if [ -z "$lines" ]; then
-        lines="$LINES"
-    fi
-    if [ -z "$lines" ]; then
-        lines=30
-    fi
-    echo "$lines"
+    case "$WINDOW_LINES_SOURCE" in
+    "TPUT")
+        tput lines 2>/dev/null
+        ;;
+    "DECRQTSR")
+        DECRQTSR | cut -d';' -f2
+        ;;
+    "ENV")
+        echo "$LINES"
+        ;;
+    *)
+        echo "30"
+        ;;
+    esac
 }
 
 function GET_COLUMNS() {
-    local columns=""
-    if [ -z "$columns" ]; then
-        columns=$(tput columns 2>/dev/null)
-    fi
-    if [ -z "$columns" ]; then
-        columns="$(DECRQTSR | cut -d';' -f3)"
-    fi
-    if [ -z "$columns" ]; then
-        columns="$COLUMNS"
-    fi
-    if [ -z "$columns" ]; then
-        columns=90
-    fi
-    echo "$columns"
+    case "$WINDOW_COLUMNS_SOURCE" in
+    "TPUT")
+        tput cols 2>/dev/null
+        ;;
+    "DECRQTSR")
+        DECRQTSR | cut -d';' -f1
+        ;;
+    "ENV")
+        echo "$COLUMNS"
+        ;;
+    *)
+        echo "90"
+        ;;
+    esac
 }
