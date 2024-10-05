@@ -24,7 +24,7 @@ SHOW_LINES="${2:-30}"
 
 function USAGE() {
     LOG "请输入正确的参数!"
-    LOG "用法: stalker.sh <模块名称> [行数]"
+    LOG "用法: stalker.sh <模块名称/文件路径> [行数]"
 }
 
 ##############################################
@@ -51,31 +51,35 @@ function ASCII_ART() {
 
 function MAIN() {
     local buffer=""
+    local file_path=""
 
     if ! CHECK_PARAMS; then
         USAGE
         EXIT 1
     fi
 
-    if [ ! -f "/var/log/$SHOW_MODULE_NAME.log" ]; then
+    if [ -f "/var/log/$SHOW_MODULE_NAME.log" ]; then
+        file_path="/var/log/$SHOW_MODULE_NAME.log"
+    elif [ -f "$SHOW_MODULE_NAME" ]; then
+        file_path="$SHOW_MODULE_NAME"
+    else
         LOG "日志文件不存在!"
         EXIT 1
-    else
-        CLEAR
-        while true; do
-            buffer="$(CLEAR_TO_START)$(ENABLE_ECHO)$(HIDE_CURSOR)"
-            buffer+="$(ASCII_ART)      [ $(date +"%F %T") ]"$'\n'
-            buffer+="————————————————————————————————————————————————————————————————————————————————————————"$'\n'
-            buffer+=$'\n'
-            buffer+="$(tail -n "$SHOW_LINES" "/var/log/$SHOW_MODULE_NAME.log")$(DISABLE_ECHO)"
-            echo "$buffer"
-            if ! NO_OUTPUT sleep 0.1; then
-                sleep 1
-            fi
-        done
-        CLEAR
     fi
 
+    CLEAR
+    while true; do
+        buffer="$(CLEAR_TO_START)$(ENABLE_ECHO)$(HIDE_CURSOR)"
+        buffer+="$(ASCII_ART)      [ $(date +"%F %T") ]"$'\n'
+        buffer+="————————————————————————————————————————————————————————————————————————————————————————"$'\n'
+        buffer+=$'\n'
+        buffer+="$(tail -n "$SHOW_LINES" "$file_path")$(DISABLE_ECHO)"
+        echo "$buffer"
+        if ! NO_OUTPUT sleep 0.1; then
+            sleep 1
+        fi
+    done
+    CLEAR
     EXIT 0
 }
 
