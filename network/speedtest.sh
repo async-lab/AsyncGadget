@@ -19,8 +19,6 @@ source "$ROOT_DIR/base/STD.sh"
 NODES="${1:-"CN"}"
 THREAD_NUM="${2:-4}"
 
-TMP_FILE="$(mktemp)"
-
 NODE_CN="https://dldir1.qq.com/qqfile/qq/PCQQ9.7.17/QQ9.7.17.29225.exe"
 NODE_HK="http://hkg.download.datapacket.com/100mb.bin"
 NODE_JP="http://tyo.download.datapacket.com/100mb.bin"
@@ -28,8 +26,6 @@ NODE_SG="https://sgp.proof.ovh.net/files/100Mb.dat"
 NODE_DE="https://nbg1-speed.hetzner.com/100MB.bin"
 NODE_FR="http://par.download.datapacket.com/100mb.bin"
 NODE_US="http://lax.download.datapacket.com/100mb.bin"
-
-PIDS=()
 
 ##############################################
 ################# TOOLFUNC ###################
@@ -114,19 +110,19 @@ function SPEEDTEST() {
     local url="$1"
 
     for ((i = 0; i < THREAD_NUM; i++)); do
-        SINGLE_THREAD_SPEEDTEST "$url" >>"$TMP_FILE" &
-        PIDS+=("$!")
+        SINGLE_THREAD_SPEEDTEST "$url" >>"$STD_TMP_FILE" &
+        echo "$!" >>"$DATA_TMP_FILE"
     done
 
-    for pid in "${PIDS[@]}"; do
+    while read -r pid; do
         NO_OUTPUT wait "$pid"
-    done
+    done <"$DATA_TMP_FILE"
 
     local sum=0
     while read -r speed; do
         sum="$((sum + speed))"
-    done <"$TMP_FILE"
-    NO_OUTPUT rm -f "$TMP_FILE"
+    done <"$STD_TMP_FILE"
+    NO_OUTPUT echo -n >"$DATA_TMP_FILE"
 
     echo "$sum"
 }
@@ -140,12 +136,11 @@ function USAGE() {
 }
 
 function EXIT() {
-    for pid in "${PIDS[@]}"; do
+    while read -r pid; do
         if [ -d "/proc/$pid" ]; then
             NO_OUTPUT kill -9 "$pid"
         fi
-    done
-    NO_OUTPUT rm -f "$TMP_FILE"
+    done <"$DATA_TMP_FILE"
     DEFAULT_EXIT "$@"
 }
 
@@ -182,7 +177,6 @@ function MAIN() {
             fi
 
             SPEEDTEST "$url" >"$STD_TMP_FILE"
-            local speed
             read -r speed <"$STD_TMP_FILE"
             LOG "节点: $node, 字节率：$(RAW_SPEED_TO_HUMAN "$speed"), 比特率：$(RAW_SPEED_TO_BITRATE "$speed")"
         done
