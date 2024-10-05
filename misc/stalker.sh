@@ -31,6 +31,7 @@ function USAGE() {
 ################ PROGRAMFUNC #################
 
 function EXIT() {
+    ENABLE_ECHO
     SHOW_CURSOR
     CLEAR
     DEFAULT_EXIT "$@"
@@ -62,11 +63,11 @@ function MAIN() {
     else
         CLEAR
         while true; do
-            buffer="$(CLEAR_TO_START)$(HIDE_CURSOR)"
+            buffer="$(CLEAR_TO_START)$(ENABLE_ECHO)$(HIDE_CURSOR)"
             buffer+="$(ASCII_ART)      [ $(date +"%F %T") ]"$'\n'
             buffer+="————————————————————————————————————————————————————————————————————————————————————————"$'\n'
             buffer+=$'\n'
-            buffer+="$(tail -n "$SHOW_LINES" "/var/log/$SHOW_MODULE_NAME.log")"
+            buffer+="$(tail -n "$SHOW_LINES" "/var/log/$SHOW_MODULE_NAME.log")$(DISABLE_ECHO)"
             echo "$buffer"
             if ! NO_OUTPUT sleep 0.1; then
                 sleep 1
