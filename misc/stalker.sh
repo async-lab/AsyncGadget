@@ -30,6 +30,8 @@ function USAGE() {
 }
 
 function EXIT() {
+    NO_OUTPUT kill "$MAIN_PID"
+    NO_OUTPUT wait "$MAIN_PID"
     ENABLE_ECHO
     SHOW_CURSOR
     CLEAR
@@ -45,7 +47,9 @@ function GET_SHOW() {
     local show_cmd="$SHOW_SOURCE"
     local window_lines="$(GET_LINES)"
     local window_columns="$(GET_COLUMNS)"
-
+    if [ ! -f "$DATA_TMP_FILE" ]; then
+        return
+    fi
     IFS=, read -r lines columns <"$DATA_TMP_FILE"
     if [ "$lines" -ne "$window_lines" ] || [ "$columns" -ne "$window_columns" ]; then
         echo "$window_lines,$window_columns" >"$DATA_TMP_FILE"
