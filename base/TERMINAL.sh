@@ -79,9 +79,9 @@ WINDOW_COLUMNS_SOURCE="CONST"
 
 if [ -n "$(tput lines 2>/dev/null)" ]; then
     WINDOW_LINES_SOURCE="TPUT"
-elif [ -n "$(stty size 2>/dev/nul | cut -d' ' -f1)" ]; then
+elif [ -n "$(stty size 2>/dev/nul <&"$STDIN" | cut -d' ' -f1)" ]; then
     WINDOW_LINES_SOURCE="STTY"
-elif _CHECK_DECRQTSR; then
+elif _CHECK_DECRQTSR <&"$STDIN"; then
     WINDOW_LINES_SOURCE="DECRQTSR"
 elif [ -n "$LINES" ]; then
     WINDOW_LINES_SOURCE="ENV"
@@ -89,9 +89,9 @@ fi
 
 if [ -n "$(tput cols 2>/dev/null)" ]; then
     WINDOW_COLUMNS_SOURCE="TPUT"
-elif [ -n "$(stty size 2>/dev/nul | cut -d' ' -f2)" ]; then
+elif [ -n "$(stty size 2>/dev/nul <&"$STDIN" | cut -d' ' -f2)" ]; then
     WINDOW_COLUMNS_SOURCE="STTY"
-elif _CHECK_DECRQTSR; then
+elif _CHECK_DECRQTSR <&"$STDIN"; then
     WINDOW_COLUMNS_SOURCE="DECRQTSR"
 elif [ -n "$COLUMNS" ]; then
     WINDOW_COLUMNS_SOURCE="ENV"
@@ -103,10 +103,10 @@ function GET_LINES() {
         tput lines 2>/dev/null
         ;;
     "STTY")
-        stty size 2>/dev/nul | cut -d' ' -f1
+        stty size 2>/dev/nul <&"$STDIN" | cut -d' ' -f1
         ;;
     "DECRQTSR")
-        DECRQTSR | cut -d';' -f2
+        DECRQTSR <&"$STDIN" | cut -d';' -f2
         ;;
     "ENV")
         echo "$LINES"
@@ -123,10 +123,10 @@ function GET_COLUMNS() {
         tput cols 2>/dev/null
         ;;
     "STTY")
-        stty size 2>/dev/nul | cut -d' ' -f2
+        stty size 2>/dev/nul <&"$STDIN" | cut -d' ' -f2
         ;;
     "DECRQTSR")
-        DECRQTSR | cut -d';' -f1
+        DECRQTSR <&"$STDIN" | cut -d';' -f3
         ;;
     "ENV")
         echo "$COLUMNS"
