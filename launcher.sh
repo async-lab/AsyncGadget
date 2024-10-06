@@ -29,7 +29,7 @@ SCRIPT_PID=""
 function EXIT() {
     kill "$SCRIPT_PID" >/dev/null 2>&1
     wait "$SCRIPT_PID" >/dev/null 2>&1
-    echo $LINES
+    exec 3<&-
     exit "$@"
 }
 

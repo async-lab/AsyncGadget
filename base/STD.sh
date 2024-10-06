@@ -66,6 +66,7 @@ function DEFAULT_EXIT() {
     NO_OUTPUT rm -f "$DATA_TMP_FILE"
     NO_OUTPUT kill "$MAIN_PID"
     NO_OUTPUT wait "$MAIN_PID"
+    exec 3<&-
     exit "$@"
 }
 

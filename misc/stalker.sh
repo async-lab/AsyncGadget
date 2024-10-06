@@ -55,8 +55,8 @@ function CHECK_PARAMS() {
 
 function GET_SHOW() {
     local show_cmd="$SHOW_SOURCE"
-    local window_lines="$(GET_LINES <&"$STDIN")"
-    local window_columns="$(GET_COLUMNS <&"$STDIN")"
+    local window_lines="$(GET_LINES)"
+    local window_columns="$(GET_COLUMNS)"
     if [ ! -f "$DATA_TMP_FILE" ]; then
         return
     fi
@@ -119,7 +119,7 @@ function MAIN() {
         DEFAULT_EXIT 1
     fi
 
-    echo "$(GET_LINES <&"$STDIN"),$(GET_COLUMNS <&"$STDIN")" >"$DATA_TMP_FILE"
+    echo "$(GET_LINES),$(GET_COLUMNS)" >"$DATA_TMP_FILE"
 
     CLEAR
     while true; do
