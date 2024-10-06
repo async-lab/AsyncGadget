@@ -47,8 +47,15 @@ function GET_SHOW() {
     local show_cmd="$SHOW_SOURCE"
     local window_lines="$(GET_LINES)"
     local window_columns="$(GET_COLUMNS)"
-    if [ -z "$window_lines" ] || [ -z "$window_columns" ]; then
+    if [ ! -f "$DATA_TMP_FILE" ]; then
         return
+    fi
+    IFS=, read -r lines columns <"$DATA_TMP_FILE"
+    if [ "$lines" -ne "$window_lines" ] || [ "$columns" -ne "$window_columns" ]; then
+        echo "$window_lines,$window_columns" >"$DATA_TMP_FILE"
+        echo 0 >"$STD_TMP_FILE"
+    else
+        echo 1 >"$STD_TMP_FILE"
     fi
 
     local show_lines="$((window_lines - 7))"
@@ -102,10 +109,19 @@ function MAIN() {
         DEFAULT_EXIT 1
     fi
 
+    echo "$(GET_LINES),$(GET_COLUMNS)" >"$DATA_TMP_FILE"
+
     CLEAR
     while true; do
         local content="$(GET_SHOW)"
-        buffer="$(ENABLE_ECHO)$(HIDE_CURSOR)"
+        buffer=""
+        if [ -f "$STD_TMP_FILE" ]; then
+            read -r is_resize <"$STD_TMP_FILE"
+            if [ "$is_resize" -eq 0 ]; then
+                buffer+="$(CLEAR)"
+            fi
+        fi
+        buffer+="$(ENABLE_ECHO)$(HIDE_CURSOR)"
         buffer+="$(ASCII_ART)      [ $(date +"%F %T") ]"$'\n'
         buffer+="—————————————————————————————————————————————————————————————————————————————————————————"$'\n'$'\n'
         buffer+="$content"
