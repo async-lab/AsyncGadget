@@ -65,10 +65,8 @@ function GET_SHOW() {
 
     if [ -f "/var/log/${SHOW_SOURCE}.log" ]; then
         show_cmd="tail -n ${show_lines} /var/log/${SHOW_SOURCE}.log"
-    elif [ -f "$SHOW_SOURCE" ]; then
+    elif [ -f "$SHOW_SOURCE" ] || [ -p "$SHOW_SOURCE" ]; then
         show_cmd="tail -n ${show_lines} ${SHOW_SOURCE}"
-    elif [ -p "$SHOW_SOURCE" ]; then
-        show_cmd="tail -f -n ${show_lines} ${SHOW_SOURCE}"
     fi
 
     local raw_result="$($show_cmd 2>&1)"
