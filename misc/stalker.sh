@@ -18,11 +18,19 @@ source "$ROOT_DIR/base/STD.sh"
 
 SHOW_SOURCE="$1"
 
+CHECK_ENTER_PID=""
+
 ##############################################
 ################# TOOLFUNC ###################
 
 ##############################################
 ################ PROGRAMFUNC #################
+
+function CHECK_ENTER() {
+    while true; do
+        read -s -r <&"$STDIN"
+    done
+}
 
 function USAGE() {
     LOG "请输入正确的参数!"
@@ -32,6 +40,8 @@ function USAGE() {
 function EXIT() {
     NO_OUTPUT kill "$MAIN_PID"
     NO_OUTPUT wait "$MAIN_PID"
+    NO_OUTPUT kill "$CHECK_ENTER_PID"
+    NO_OUTPUT wait "$CHECK_ENTER_PID"
     ENABLE_ECHO
     SHOW_CURSOR
     CLEAR
@@ -45,8 +55,8 @@ function CHECK_PARAMS() {
 
 function GET_SHOW() {
     local show_cmd="$SHOW_SOURCE"
-    local window_lines="$(GET_LINES)"
-    local window_columns="$(GET_COLUMNS)"
+    local window_lines="$(GET_LINES <&"$STDIN")"
+    local window_columns="$(GET_COLUMNS <&"$STDIN")"
     if [ ! -f "$DATA_TMP_FILE" ]; then
         return
     fi
@@ -109,7 +119,7 @@ function MAIN() {
         DEFAULT_EXIT 1
     fi
 
-    echo "$(GET_LINES),$(GET_COLUMNS)" >"$DATA_TMP_FILE"
+    echo "$(GET_LINES <&"$STDIN"),$(GET_COLUMNS <&"$STDIN")" >"$DATA_TMP_FILE"
 
     CLEAR
     while true; do
@@ -136,4 +146,6 @@ function MAIN() {
     EXIT 0
 }
 
+CHECK_ENTER &
+CHECK_ENTER_PID="$!"
 RUN_MAIN MAIN "$@"
