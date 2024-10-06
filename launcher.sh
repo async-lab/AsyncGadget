@@ -16,6 +16,7 @@ AUTOAUTH="$ROOT_DIR/network/autoauth.sh"
 SPEEDTEST="$ROOT_DIR/network/speedtest.sh"
 
 exec 3<&0
+export STDIN="3"
 
 SCRIPT="$1"
 SCRIPT_PID=""

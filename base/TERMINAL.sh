@@ -51,30 +51,21 @@ function SMOOTH_ECHO() {
         result+="${line}$(CLEAR_LINE)"$'\n'
     done <<<"$buffer"
 
+    result="${result%$'\n'}"
     result+="$(CLEAR_TO_END)"
     echo "${args[@]:0:$args_length-1}" "$result"
 }
 
 function DECRQTSR() {
     echo -ne "\e[18t" >/dev/tty
-    if [ -e "/proc/$$/fd/3" ]; then
-        read -d 't' -s -r response <&3
-    else
-        read -d 't' -s -r response
-    fi
+    read -d 't' -s -r response
     echo "$response"
 }
 
 function _CHECK_DECRQTSR() {
     echo -ne "\e[18t" >/dev/tty
-    if [ -e "/proc/$$/fd/3" ]; then
-        if ! read -t 0.1 -d 't' -s -r response 2>/dev/null <&3; then
-            read -t 1 -d 't' -s -r response <&3
-        fi
-    else
-        if ! read -t 0.1 -d 't' -s -r response 2>/dev/null; then
-            read -t 1 -d 't' -s -r response
-        fi
+    if ! read -t 0.1 -d 't' -s -r response 2>/dev/null; then
+        read -t 1 -d 't' -s -r response
     fi
     if [ -n "$response" ]; then
         return 0
@@ -83,20 +74,12 @@ function _CHECK_DECRQTSR() {
     fi
 }
 
-function _GET_STTY_SIZE() {
-    if [ -e "/proc/$$/fd/3" ]; then
-        stty size <&3 2>/dev/null
-    else
-        stty size 2>/dev/null
-    fi
-}
-
 WINDOW_LINES_SOURCE="CONST"
 WINDOW_COLUMNS_SOURCE="CONST"
 
 if [ -n "$(tput lines 2>/dev/null)" ]; then
     WINDOW_LINES_SOURCE="TPUT"
-elif [ -n "$(_GET_STTY_SIZE | cut -d' ' -f1)" ]; then
+elif [ -n "$(stty size 2>/dev/nul | cut -d' ' -f1)" ]; then
     WINDOW_LINES_SOURCE="STTY"
 elif _CHECK_DECRQTSR; then
     WINDOW_LINES_SOURCE="DECRQTSR"
@@ -106,7 +89,7 @@ fi
 
 if [ -n "$(tput cols 2>/dev/null)" ]; then
     WINDOW_COLUMNS_SOURCE="TPUT"
-elif [ -n "$(_GET_STTY_SIZE | cut -d' ' -f2)" ]; then
+elif [ -n "$(stty size 2>/dev/nul | cut -d' ' -f2)" ]; then
     WINDOW_COLUMNS_SOURCE="STTY"
 elif _CHECK_DECRQTSR; then
     WINDOW_COLUMNS_SOURCE="DECRQTSR"
@@ -120,7 +103,7 @@ function GET_LINES() {
         tput lines 2>/dev/null
         ;;
     "STTY")
-        _GET_STTY_SIZE | cut -d' ' -f1
+        stty size 2>/dev/nul | cut -d' ' -f1
         ;;
     "DECRQTSR")
         DECRQTSR | cut -d';' -f2
@@ -140,7 +123,7 @@ function GET_COLUMNS() {
         tput cols 2>/dev/null
         ;;
     "STTY")
-        _GET_STTY_SIZE | cut -d' ' -f2
+        stty size 2>/dev/nul | cut -d' ' -f2
         ;;
     "DECRQTSR")
         DECRQTSR | cut -d';' -f1
