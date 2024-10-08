@@ -211,7 +211,7 @@ function MAIN() {
                             account_arr[4]="$(date +%s)"
                         fi
                     elif [ "${account_arr[3]}" -eq "$i" ]; then
-                        LOG "接口 $interface 掉线！账号: ${account_arr[1]}"
+                        LOG "接口 $interface 被挤占！账号: ${account_arr[1]}"
                         account_arr[3]=0
                         account_arr[4]="$(date +%s)"
                     fi
