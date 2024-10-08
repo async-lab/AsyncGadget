@@ -16,7 +16,7 @@ source "$ROOT_DIR/base/STD.sh"
 ##############################################
 ################### GLOBAL ###################
 
-SHOW_SOURCE="$1"
+SHOW_SOURCE="$*"
 
 CHECK_ENTER_PID=""
 
