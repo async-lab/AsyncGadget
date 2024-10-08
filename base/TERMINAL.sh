@@ -311,7 +311,6 @@ function SMOOTH_ECHO() {
     local line_show_length=0
     while IFS= read -r line; do
         line_show_length="$(GET_LINE_SHOW_LENGTH "$line")"
-        line="$(echo "$line" | expand)"
         result+="${line}"
         if [ "$line_show_length" -ne "$window_columns" ]; then
             result+="$(CLEAR_LINE)"
