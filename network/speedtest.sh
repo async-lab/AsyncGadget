@@ -34,15 +34,15 @@ function RAW_SPEED_TO_HUMAN() {
     local speed="$1"
     local unit="B/s"
     if [ "$speed" -gt 1024 ]; then
-        speed="$((speed / 1024))"
+        ((speed /= 1024))
         unit="KB/s"
     fi
     if [ "$speed" -gt 1024 ]; then
-        speed="$((speed / 1024))"
+        ((speed /= 1024))
         unit="MB/s"
     fi
     if [ "$speed" -gt 1024 ]; then
-        speed="$((speed / 1024))"
+        ((speed /= 1024))
         unit="GB/s"
     fi
     echo "$speed $unit"
@@ -52,15 +52,15 @@ function RAW_SPEED_TO_BITRATE() {
     local speed="$(("$1" * 8))"
     local unit="b/s"
     if [ "$speed" -gt 1024 ]; then
-        speed="$((speed / 1024))"
+        ((speed /= 1024))
         unit="Kb/s"
     fi
     if [ "$speed" -gt 1024 ]; then
-        speed="$((speed / 1024))"
+        ((speed /= 1024))
         unit="Mb/s"
     fi
     if [ "$speed" -gt 1024 ]; then
-        speed="$((speed / 1024))"
+        ((speed /= 1024))
         unit="Gb/s"
     fi
     echo "$speed $unit"
@@ -119,8 +119,9 @@ function SPEEDTEST() {
     done <"$DATA_TMP_FILE"
 
     local sum=0
+
     while read -r speed; do
-        sum="$((sum + speed))"
+        ((sum += speed))
     done <"$STD_TMP_FILE"
     NO_OUTPUT echo -n >"$DATA_TMP_FILE"
 

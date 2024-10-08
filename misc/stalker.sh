@@ -20,38 +20,11 @@ SHOW_SOURCE="$1"
 
 CHECK_ENTER_PID=""
 
-##############################################
-################# TOOLFUNC ###################
+DEPENDED_PACKAGES=("fold")
+MANDATORY_PARAMS=("$SHOW_SOURCE")
 
 ##############################################
-################ PROGRAMFUNC #################
-
-function CHECK_ENTER() {
-    while true; do
-        read -s -r <&"$STDIN"
-    done
-}
-
-function USAGE() {
-    LOG "请输入正确的参数!"
-    LOG "用法: stalker.sh <模块名称/文件路径/命令>"
-}
-
-function EXIT() {
-    NO_OUTPUT kill "$MAIN_PID"
-    NO_OUTPUT wait "$MAIN_PID"
-    NO_OUTPUT kill "$CHECK_ENTER_PID"
-    NO_OUTPUT wait "$CHECK_ENTER_PID"
-    ENABLE_ECHO
-    SHOW_CURSOR
-    CLEAR
-    DEFAULT_EXIT "$@"
-}
-
-function CHECK_PARAMS() {
-    CHECK_IF_ALL_EXIST "$SHOW_SOURCE"
-    return "$?"
-}
+################ PROCESSFUNC #################
 
 function GET_SHOW() {
     local show_cmd="$SHOW_SOURCE"
@@ -74,57 +47,49 @@ function GET_SHOW() {
     fi
 
     if [ -f "/var/log/${SHOW_SOURCE}.log" ]; then
-        show_cmd="tail -n ${show_lines} /var/log/${SHOW_SOURCE}.log"
+        show_cmd="cat /var/log/${SHOW_SOURCE}.log"
     elif [ -f "$SHOW_SOURCE" ] || [ -p "$SHOW_SOURCE" ]; then
-        show_cmd="tail -n ${show_lines} ${SHOW_SOURCE}"
+        show_cmd="cat ${SHOW_SOURCE}"
     fi
 
-    local raw_result="$($show_cmd 2>&1)"
-    local result=""
-
-    local total_lines=0
-    while IFS= read -r line; do
-        while true; do
-            if [ "$total_lines" -eq "$show_lines" ]; then
-                break
-            fi
-
-            if [ "${#line}" -gt "$window_columns" ]; then
-                result+="${line:0:$window_columns}"$'\n'
-                line="${line:$window_columns}"
-                total_lines="$((total_lines + 1))"
-            else
-                result+="$line"$'\n'
-                total_lines="$((total_lines + 1))"
-                break
-            fi
-        done
-    done <<<"$raw_result"
-
-    echo "$result"
+    $show_cmd 2>&1 | tail -n "$show_lines" | sed "s/"$'\v'"/$(printf "%*s" "$window_columns" ' ')/g" | STDIN FOLD | tail -n "$show_lines"
 }
+
+##############################################
+################ PROGRAMFUNC #################
+
+function USAGE() {
+    LOG "用法: stalker.sh <模块名称/文件路径/命令>"
+}
+
+function EXIT() {
+    ENABLE_ECHO
+    SHOW_CURSOR
+    CLEAR
+    DEFAULT_EXIT "$@"
+}
+
+PROCESS_TIME=0
 
 function ASCII_ART() {
     echo ' _______ _______ _______ _____   __  __ _______ ______  '
-    echo '|     __|_     _|   _   |     |_|  |/  |    ___|   __ \ '
-    echo '|__     | |   | |       |       |     <|    ___|      < '
-    echo '|_______| |___| |___|___|_______|__|\__|_______|___|__| '
+    echo '|     __|_     _|   _   |     |_|  |/  |    ___|   __ \ '"      按Ctrl+C关闭"
+    echo '|__     | |   | |       |       |     <|    ___|      < '"      处理时间：$PROCESS_TIME ms"
+    echo '|_______| |___| |___|___|_______|__|\__|_______|___|__| '"      [ $(date +"%F %T") ]     "
 }
 
 function MAIN() {
-    local buffer=""
-
-    if ! CHECK_PARAMS; then
-        USAGE
+    if ! DEFAULT_MAIN; then
         DEFAULT_EXIT 1
     fi
 
     echo "$(GET_LINES),$(GET_COLUMNS)" >"$DATA_TMP_FILE"
-
     CLEAR
     while true; do
+        local before="$(GET_SYSTEM_STAMP)"
         local content="$(GET_SHOW)"
-        buffer=""
+
+        local buffer=""
         if [ -f "$STD_TMP_FILE" ]; then
             read -r is_resize <"$STD_TMP_FILE"
             if [ "$is_resize" -eq 0 ]; then
@@ -132,13 +97,19 @@ function MAIN() {
             fi
         fi
         buffer+="$(ENABLE_ECHO)$(HIDE_CURSOR)"
-        buffer+="$(ASCII_ART)      [ $(date +"%F %T") ]"$'\n'
+        buffer+="$(ASCII_ART)"$'\n'
         buffer+="—————————————————————————————————————————————————————————————————————————————————————————"$'\n'$'\n'
         buffer+="$content"
         buffer+="$(DISABLE_ECHO)"
         SMOOTH_ECHO -n "$buffer"
-        if ! NO_OUTPUT sleep 0.1; then
-            sleep 1
+        CURSOR_MOVE 6 1
+
+        local now="$(GET_SYSTEM_STAMP)"
+        PROCESS_TIME="$((now - before))"
+        if [ "$PROCESS_TIME" -lt 100 ]; then
+            if ! NO_OUTPUT sleep 0.1; then
+                sleep 1
+            fi
         fi
     done
     CLEAR
@@ -146,6 +117,4 @@ function MAIN() {
     EXIT 0
 }
 
-CHECK_ENTER &
-CHECK_ENTER_PID="$!"
 RUN_MAIN MAIN "$@"
