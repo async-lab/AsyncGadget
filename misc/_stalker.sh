@@ -194,7 +194,6 @@ function MAIN() {
                         while IFS= read -r -n1 char; do
                             case "$char" in
                             $'\t') ((line_show_length += 8 - line_show_length % 8)) ;;
-                            # $'v') ((length += "$(GET_COLUMNS)")) ;;
                             [[:cntrl:]] | '') ;;
                             [a-zA-Z0-9.~_-] | ' ') ((line_show_length++)) ;;
                             $'\xe2\x80\x8b' | $'\xe2\x80\x8c' | $'\xe2\x80\x8d' | $'\xe2\x80\x8e ') ;;

@@ -10,7 +10,7 @@ export ROOT_DIR="$DIR"
 
 CERT_SYNC_BOT="$ROOT_DIR/misc/cert_sync_bot.sh"
 GIT_RELEASE_UPDATER="$ROOT_DIR/misc/git_release_updater.sh"
-STALKER="$ROOT_DIR/misc/_stalker.sh"
+STALKER="$ROOT_DIR/misc/stalker.sh"
 SYSTEMD_BOT="$ROOT_DIR/misc/systemd_bot.sh"
 AUTOAUTH="$ROOT_DIR/network/autoauth.sh"
 SPEEDTEST="$ROOT_DIR/network/speedtest.sh"
