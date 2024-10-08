@@ -200,28 +200,24 @@ function GET_COLUMNS() {
 }
 
 function GET_LINE_SHOW_LENGTH() {
-    local str="$(echo "$*" | sed -r 's/\x1B\[[0-9;]*[mKABCDHf]//g')"
+    local length=0
+    while IFS= read -r -n1 char; do
+        case "$char" in
+        $'\t') ((length += 8 - length % 8)) ;;
+        # $'v') ((length += "$(GET_COLUMNS)")) ;;
+        [[:cntrl:]] | '') ;;
+        [[:print:]]) ((length++)) ;;
+        $'\xe2\x80\x8b' | $'\xe2\x80\x8c' | $'\xe2\x80\x8d' | $'\xe2\x80\x8e ') ;;
+        [一-龥] | [ぁ-ゔ] | [ァ-ヴー] | [々〆〤] | [㈠-㉃]) ((length += 2)) ;;
+        *) ;;
+        esac
+    done <<<"$(echo "$*" | sed -r 's/\x1B\[[0-9;]*[mKABCDHf]//g')"
 
-    while IFS= read -r line; do
-        local length=0
-        while IFS= read -r -n1 char; do
-            case "$char" in
-            $'\t') ((length += 8 - length % 8)) ;;
-            # $'v') ((length += "$(GET_COLUMNS)")) ;;
-            [[:cntrl:]] | '') ;;
-            [a-zA-Z0-9.~_-] | ' ') ((length++)) ;;
-            $'\xe2\x80\x8b' | $'\xe2\x80\x8c' | $'\xe2\x80\x8d' | $'\xe2\x80\x8e ') ;;
-            [一-龥] | [ぁ-ゔ] | [ァ-ヴー] | [々〆〤] | [㈠-㉃]) ((length += 2)) ;;
-            *) ;;
-            esac
-        done <<<"$line"
-
-        echo "$length"
-    done <<<"$str"
+    echo "$length"
 }
 
 function FOLD() {
-    local str="$*"
+    local str=("$@")
     local window_columns="$(GET_COLUMNS)"
     local result=""
 
@@ -272,7 +268,7 @@ function FOLD() {
                 line="${line:$cut_length}"
             fi
         done
-    done <<<"$str"
+    done <<<"${str[@]}"
 
     echo -n "$result"
 }
