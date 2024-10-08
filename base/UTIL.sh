@@ -3,7 +3,9 @@
 
 # 检查包是否存在
 function CHECK_PACKAGE() {
-    if command -v dpkg >/dev/null 2>&1; then
+    if command -v "$1" >/dev/null 2>&1; then
+        return 0
+    elif command -v dpkg >/dev/null 2>&1; then
         dpkg -l | grep -qw "$1"
     elif command -v rpm >/dev/null 2>&1; then
         rpm -q "$1" >/dev/null 2>&1
@@ -55,4 +57,24 @@ function PERIOD_TO_SECONDS() {
         echo ""
         ;;
     esac
+}
+
+function FIND_POSITION() {
+    local str="$1"
+    local sub="$2"
+
+    local sub_length=${#sub}
+    local end=$(("${#str}" - length + 1))
+    local i
+
+    for ((i = 0; i < end; i++)); do
+        if [[ "${str:i:sub_length}" == "$sub" ]]; then
+            echo $((i + 1))
+        fi
+    done
+}
+
+function GET_SYSTEM_STAMP() {
+    local now_stamp="$(awk '{print $1}' <"/proc/uptime")"
+    echo "${now_stamp//./}"
 }

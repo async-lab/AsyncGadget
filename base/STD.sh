@@ -22,12 +22,19 @@ MAIN_PID=""
 STD_FIFO=""
 STD_TMP_FILE=""
 DATA_TMP_FILE=""
+PIDS_TMP_FILE=""
+OTHER_TMP_FILE=""
+
+DEPENDED_PACKAGES=()
+MANDATORY_PARAMS=()
 
 if ! CHECK_FD 3; then
     exec 3<&0
 fi
 
 export STDIN="${STDIN:-3}"
+
+export CPU_CORE_NUM="$(grep -c '^processor' /proc/cpuinfo)"
 
 ##############################################
 ################# TOOLFUNC ###################
@@ -41,8 +48,10 @@ export STDIN="${STDIN:-3}"
 function RUN_MAIN() {
     STD_FIFO="$(mktemp -u "/tmp/gadget_fifo.XXXXXX")"
     mkfifo "$STD_FIFO"
-    STD_TMP_FILE="$(mktemp "/tmp/gadget_tmp.XXXXXX")"
-    DATA_TMP_FILE="$(mktemp "/tmp/gadget_tmp.XXXXXX")"
+    STD_TMP_FILE="$(mktemp "/tmp/gadget_std_tmp.XXXXXX")"
+    DATA_TMP_FILE="$(mktemp "/tmp/gadget_data_tmp.XXXXXX")"
+    PIDS_TMP_FILE="$(mktemp "/tmp/gadget_pids_tmp.XXXXXX")"
+    OTHER_TMP_FILE="$(mktemp "/tmp/gadget_other_tmp.XXXXXX")"
     "$@" &
     MAIN_PID="$!"
     wait "$MAIN_PID"
@@ -61,21 +70,38 @@ function DEFAULT_EXIT() {
     else
         LOG "正在退出..."
     fi
-    NO_OUTPUT rm -f "$STD_FIFO"
-    NO_OUTPUT rm -f "$STD_TMP_FILE"
-    NO_OUTPUT rm -f "$DATA_TMP_FILE"
+    NO_OUTPUT rm -f "$STD_FIFO" "$STD_TMP_FILE" "$DATA_TMP_FILE" "$PIDS_TMP_FILE" "$OTHER_TMP_FILE"
     NO_OUTPUT kill "$MAIN_PID"
     NO_OUTPUT wait "$MAIN_PID"
     exec 3<&-
     exit "$@"
 }
 
+function DEFAULT_CHECK_PACKAGES() {
+    local completed=0
+    for package in "${DEPENDED_PACKAGES[@]}"; do
+        if ! CHECK_PACKAGE "$package"; then
+            LOG "未安装 $package"
+            completed=1
+        fi
+    done
+    return "$completed"
+}
+
 function DEFAULT_CHECK_PARAMS() {
-    return 0
+    if CHECK_IF_ALL_EXIST "${MANDATORY_PARAMS[@]}"; then
+        return 0
+    else
+        USAGE
+        return 1
+    fi
 }
 
 function DEFAULT_MAIN() {
-    EXIT 0
+    if ! CHECK_PACKAGES || ! CHECK_PARAMS; then
+        return 1
+    fi
+    return 0
 }
 
 ##############################################
@@ -89,12 +115,20 @@ function EXIT() {
     DEFAULT_EXIT "$@"
 }
 
+function CHECK_PACKAGES() {
+    DEFAULT_CHECK_PACKAGES
+    return "$?"
+}
+
 function CHECK_PARAMS() {
-    return "$(RETURN_AS_OUTPUT DEFAULT_CHECK_PARAMS)"
+    DEFAULT_CHECK_PARAMS
+    return "$?"
 }
 
 function MAIN() {
-    DEFAULT_MAIN
+    if ! DEFAULT_MAIN; then
+        EXIT 1
+    fi
 }
 
 trap EXIT SIGINT SIGTERM SIGALRM

@@ -16,10 +16,10 @@ function RETURN_AS_OUTPUT() {
 # 将标准输入输出流的数据传递给命令参数
 function STDIN() {
     local params=()
-    while IFS= read -r line; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
         params+=("$line")
     done
-    "$@" "${params[@]}"
+    "$@" "$(printf "%s\n" "${params[@]}")"
     return "$?"
 }
 
