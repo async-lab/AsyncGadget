@@ -199,7 +199,7 @@ function GET_COLUMNS() {
     esac
 }
 
-function GET_LINE_SHOW_LENGTH() {
+function GET_SHOW_LENGTH() {
     local length=0
     while IFS= read -r -n1 char; do
         case "$char" in
@@ -217,13 +217,13 @@ function GET_LINE_SHOW_LENGTH() {
 }
 
 function FOLD() {
-    local str=("$@")
+    local str="$*"
     local window_columns="$(GET_COLUMNS)"
     local result=""
 
     while IFS= read -r line; do
         while true; do
-            local line_show_length="$(GET_LINE_SHOW_LENGTH "$line")"
+            local line_show_length="$(GET_SHOW_LENGTH "$line")"
             if [ "$line_show_length" -le "$window_columns" ]; then
                 result+="${line}"$'\n'
                 break
@@ -237,7 +237,7 @@ function FOLD() {
                 fi
                 local latest_step="$step"
                 while true; do
-                    local cut_show_length="$(GET_LINE_SHOW_LENGTH "${line:0:$cut_length}")"
+                    local cut_show_length="$(GET_SHOW_LENGTH "${line:0:$cut_length}")"
 
                     if [ "$cut_show_length" -lt "$window_columns" ]; then
                         if [ "$mark" -eq 1 ] && [ "$latest_step" -eq 1 ]; then
@@ -268,7 +268,7 @@ function FOLD() {
                 line="${line:$cut_length}"
             fi
         done
-    done <<<"${str[@]}"
+    done <<<"$str"
 
     echo -n "$result"
 }
@@ -284,7 +284,7 @@ function EXPAND() {
             for ((i = 0; i < ${#line}; i++)); do
                 local char="${line:$i:1}"
                 if [[ "$char" == $'\t' ]]; then
-                    local space_count=$((8 - $(GET_LINE_SHOW_LENGTH "${line:0:$i}") % 8))
+                    local space_count=$((8 - $(GET_SHOW_LENGTH "${line:0:$i}") % 8))
                     expanded_line+=$(printf "%${space_count}s")
                 else
                     expanded_line+="$char"
@@ -310,7 +310,7 @@ function SMOOTH_ECHO() {
     local result="$(CURSOR_TO_START)"
     local line_show_length=0
     while IFS= read -r line; do
-        line_show_length="$(GET_LINE_SHOW_LENGTH "$line")"
+        line_show_length="$(GET_SHOW_LENGTH "$line")"
         result+="${line}"
         if [ "$line_show_length" -ne "$window_columns" ]; then
             result+="$(CLEAR_LINE)"
