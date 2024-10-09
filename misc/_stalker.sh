@@ -232,7 +232,6 @@ function MAIN() {
                 *) ;;
                 esac
             done <<<"$line"
-            line="$(echo "$line" | expand)"
             p1+="${line}"
             if [ "$line_show_length" -ne "$window_columns" ]; then
                 p1+="$(CLEAR_LINE)"
