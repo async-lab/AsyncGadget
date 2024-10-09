@@ -18,7 +18,7 @@ source "$ROOT_DIR/base/STD.sh"
 
 SHOW_SOURCE="$*"
 
-CHECK_ENTER_PID=""
+PROCESS_TIME=0
 
 DEPENDED_PACKAGES=("fold")
 MANDATORY_PARAMS=("$SHOW_SOURCE")
@@ -68,8 +68,6 @@ function EXIT() {
     CLEAR
     DEFAULT_EXIT "$@"
 }
-
-PROCESS_TIME=0
 
 function ASCII_ART() {
     echo ' _______ _______ _______ _____   __  __ _______ ______  '
