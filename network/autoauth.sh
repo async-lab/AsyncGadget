@@ -20,6 +20,8 @@ ACCOUNT_FILE="$1"
 SLEEP_TIME="${2:-10}"
 WAIT_TIME="$(PERIOD_TO_SECONDS "${3:-"2h"}")"
 
+FAILED_RETRY_TIME=180
+
 CHECK_IP="223.5.5.5"
 AUTH_IP="10.254.241.19"
 ISP_MAPPING=("电信" "移动" "联通" "教育网")
@@ -210,6 +212,7 @@ function MAIN() {
                         else
                             LOG "接口 $interface 认证失败！账号: ${account_arr[1]}"
                             LOG "错误信息: $(cat "$OTHER_TMP_FILE")"
+                            account_arr[4]="$(($(date +%s) - WAIT_TIME + FAILED_RETRY_TIME))"
                         fi
                     elif [ "${account_arr[3]}" -eq "$i" ]; then
                         LOG "接口 $interface 被挤占！账号: ${account_arr[1]}"
