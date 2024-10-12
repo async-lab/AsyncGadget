@@ -82,12 +82,10 @@ function AUTH() {
     if [[ $response == *"success"* ]]; then
         return 0
     else
+        echo "$response" >"$OTHER_TMP_FILE"
         return 1
     fi
 }
-
-##############################################
-################ PROGRAMFUNC #################
 
 function LOAD_ACCOUNTS() {
     if [ ! -f "$ACCOUNT_FILE" ]; then
@@ -143,6 +141,9 @@ function LOAD_ACCOUNTS() {
 
     return 0
 }
+
+##############################################
+################ PROGRAMFUNC #################
 
 function USAGE() {
     LOG "用法:"
@@ -208,6 +209,7 @@ function MAIN() {
                             has_auth=0
                         else
                             LOG "接口 $interface 认证失败！账号: ${account_arr[1]}"
+                            LOG "错误信息: $(cat "$OTHER_TMP_FILE")"
                         fi
                     elif [ "${account_arr[3]}" -eq "$i" ]; then
                         LOG "接口 $interface 被挤占！账号: ${account_arr[1]}"
