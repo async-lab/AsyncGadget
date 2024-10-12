@@ -208,7 +208,6 @@ function MAIN() {
                             has_auth=0
                         else
                             LOG "接口 $interface 认证失败！账号: ${account_arr[1]}"
-                            account_arr[4]="$(date +%s)"
                         fi
                     elif [ "${account_arr[3]}" -eq "$i" ]; then
                         LOG "接口 $interface 被挤占！账号: ${account_arr[1]}"
