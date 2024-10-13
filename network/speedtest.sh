@@ -111,12 +111,12 @@ function SPEEDTEST() {
 
     for ((i = 0; i < THREAD_NUM; i++)); do
         SINGLE_THREAD_SPEEDTEST "$url" >>"$STD_TMP_FILE" &
-        echo "$!" >>"$DATA_TMP_FILE"
+        echo "$!" >>"$PIDS_TMP_FILE"
     done
 
     while read -r pid; do
         NO_OUTPUT wait "$pid"
-    done <"$DATA_TMP_FILE"
+    done <"$PIDS_TMP_FILE"
 
     local sum=0
 

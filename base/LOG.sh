@@ -23,12 +23,12 @@ function LIMIT_LOG_LINES() {
 ##############################################
 
 function STDOUT() {
-    echo -ne "\r\033[K"
+    echo -ne "\r\e[K"
     echo "$@"
 }
 
 function STDERR() {
-    echo -ne "\r\033[K" >&2
+    echo -ne "\r\e[K" >&2
     echo "$@" >&2
 }
 
@@ -69,7 +69,7 @@ function SET_LOG_TYPE() {
     case "$LOG_TYPE" in
     "console")
         function STDOUT() {
-            echo -ne "\r\033[K"
+            echo -ne "\r\e[K"
             echo "$@"
         }
         function LOG() {
