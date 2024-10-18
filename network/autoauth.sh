@@ -205,7 +205,7 @@ function MAIN() {
                     local account="${ACCOUNTS[j]}"
                     IFS=',' read -r -a account_arr <<<"$account"
                     if [ "${account_arr[3]}" -eq 0 ] && [ "$(($(date +%s) - account_arr[4]))" -gt "$WAIT_TIME" ]; then
-                        if AUTH "$interface" "${account_arr[4]}" "${account_arr[1]}" "${account_arr[2]}"; then
+                        if AUTH "$interface" "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}"; then
                             LOG "接口 $interface 上线！账号: ${account_arr[1]}"
                             account_arr[3]="$i"
                             has_auth=0
