@@ -21,6 +21,8 @@ TYPE="$2"
 NAME="$3"
 PARAM="$4"
 
+MANDATORY_PARAMS=("$METHOD" "$TYPE" "$NAME")
+
 ##############################################
 ################ PROCESSFUNC #################
 
@@ -82,15 +84,9 @@ function USAGE() {
     LOG "用法: systemd_bot.sh <create|delete> <service/timer> <name> <path/OnCalendar>"
 }
 
-function CHECK_PARAMS() {
-    CHECK_IF_ALL_EXIST "$METHOD" "$TYPE" "$NAME"
-    return "$?"
-}
-
 function MAIN() {
-    if ! CHECK_PARAMS; then
-        USAGE
-        EXIT 1
+    if ! DEFAULT_MAIN; then
+        DEFAULT_EXIT 1
     fi
 
     case "$METHOD" in
@@ -100,9 +96,15 @@ function MAIN() {
             EXIT 1
         fi
 
+        local path="$(readlink -f "$(dirname "$PARAM")")/$(basename "$PARAM")"
+
+        if [ -x "$path" ]; then
+            PARAM="$path"
+        fi
+
         case "$TYPE" in
         "service")
-            CREATE_SERVICE "$NAME" "$(readlink -f "$(dirname "$PARAM")")/$(basename "$PARAM")"
+            CREATE_SERVICE "$NAME" "$PARAM"
             ;;
         "timer")
             CREATE_TIMER "$NAME" "$PARAM"
