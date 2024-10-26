@@ -100,15 +100,11 @@ function NODE_SELECTOR() {
     esac
 }
 
-function SINGLE_THREAD_SPEEDTEST() {
-    curl -o /dev/null -s -w "%{speed_download}"$'\n' "$@"
-}
-
 function SPEEDTEST() {
     local url="$1"
 
     for ((i = 0; i < THREAD_NUM; i++)); do
-        SINGLE_THREAD_SPEEDTEST "$url" >>"$DATA_TMP_FILE" &
+        curl -o /dev/null -s -w "%{speed_download}"$'\n' "$url" >>"$DATA_TMP_FILE" &
         echo "$!" >>"$PIDS_TMP_FILE"
     done
 
