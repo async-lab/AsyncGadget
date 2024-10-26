@@ -101,28 +101,27 @@ function NODE_SELECTOR() {
 }
 
 function SINGLE_THREAD_SPEEDTEST() {
-    local url="$1"
-    local speed=$(curl -o /dev/null -s -w "%{speed_download}" "$url")
-    echo "$speed"
+    curl -o /dev/null -s -w "%{speed_download}"$'\n' "$@"
 }
 
 function SPEEDTEST() {
     local url="$1"
 
     for ((i = 0; i < THREAD_NUM; i++)); do
-        SINGLE_THREAD_SPEEDTEST "$url" >>"$STD_TMP_FILE" &
+        SINGLE_THREAD_SPEEDTEST "$url" >>"$DATA_TMP_FILE" &
         echo "$!" >>"$PIDS_TMP_FILE"
     done
 
     while read -r pid; do
         NO_OUTPUT wait "$pid"
     done <"$PIDS_TMP_FILE"
+    NO_OUTPUT echo -n >"$PIDS_TMP_FILE"
 
     local sum=0
 
     while read -r speed; do
         ((sum += speed))
-    done <"$STD_TMP_FILE"
+    done <"$DATA_TMP_FILE"
     NO_OUTPUT echo -n >"$DATA_TMP_FILE"
 
     echo "$sum"
@@ -141,7 +140,7 @@ function EXIT() {
         if [ -d "/proc/$pid" ]; then
             NO_OUTPUT kill -9 "$pid"
         fi
-    done <"$DATA_TMP_FILE"
+    done <"$PIDS_TMP_FILE"
     DEFAULT_EXIT "$@"
 }
 
@@ -177,8 +176,7 @@ function MAIN() {
                 continue
             fi
 
-            SPEEDTEST "$url" >"$STD_TMP_FILE"
-            read -r speed <"$STD_TMP_FILE"
+            local speed="$(SPEEDTEST "$url")"
             LOG "节点: $node, 字节率：$(RAW_SPEED_TO_HUMAN "$speed"), 比特率：$(RAW_SPEED_TO_BITRATE "$speed")"
         done
     }
