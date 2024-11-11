@@ -42,7 +42,7 @@ WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
     systemctl enable "$1"
-    systemctl start "$1"
+    systemctl restart "$1"
 }
 
 function CREATE_TIMER() {
@@ -59,7 +59,7 @@ EOF
 
     systemctl daemon-reload
     systemctl enable "$1.timer"
-    systemctl start "$1.timer"
+    systemctl restart "$1.timer"
 }
 
 function DELETE_SERVICE() {
