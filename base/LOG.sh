@@ -61,7 +61,7 @@ function LOG_MULTILINE() {
     local line
     while IFS= read -r line; do
         LOG "$line"
-    done
+    done <<<"$*"
 }
 
 function STATE() {
