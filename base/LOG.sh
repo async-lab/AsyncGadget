@@ -57,6 +57,13 @@ function LOG() {
     STDOUT "[$(date +"%F %T")] $*"
 }
 
+function LOG_MULTILINE() {
+    local line
+    while IFS= read -r line; do
+        LOG "$line"
+    done
+}
+
 function STATE() {
     STDOUT -n "[ 状态 ] $*"
 }
