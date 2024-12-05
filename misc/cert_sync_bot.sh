@@ -30,6 +30,8 @@ PRIVKEY_FILE="$4"
 
 VAULT_TOKEN=""
 
+DEPENDED_PACKAGES=("jq" "jo")
+
 ##############################################
 ################# TOOLFUNC ###################
 
@@ -92,18 +94,6 @@ function USAGE() {
     LOG "cert_sync_bot.sh <DOWNLOAD/UPLOAD> <域名> <证书文件> <私钥文件>"
 }
 
-function CHECK_PACKAGES() {
-    local packages=("jq" "jo")
-    local completed=0
-    for package in "${packages[@]}"; do
-        if ! CHECK_PACKAGE "$package"; then
-            LOG "未安装 $package"
-            completed=1
-        fi
-    done
-    return "$completed"
-}
-
 function CHECK_PARAMS() {
     CHECK_IF_ALL_EXIST "$VAULT_HOST" "$VAULT_CERTIFICATE_PATH" "$VAULT_CERTIFICATE_PATH" "$PASSWORD" "$METHOD" "$DOMAIN" "$CERT_FILE" "$PRIVKEY_FILE"
     if [ "$METHOD" != "DOWNLOAD" ] && [ "$METHOD" != "UPLOAD" ]; then
@@ -113,12 +103,7 @@ function CHECK_PARAMS() {
 }
 
 function MAIN() {
-    if ! CHECK_PACKAGES; then
-        EXIT 1
-    fi
-
-    if ! CHECK_PARAMS; then
-        USAGE
+    if ! DEFAULT_MAIN; then
         EXIT 1
     fi
 

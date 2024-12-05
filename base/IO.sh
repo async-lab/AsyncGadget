@@ -23,7 +23,8 @@ function STDIN() {
     return "$?"
 }
 
-function CHECK_FD() {
+# 检查文件描述符是否存在
+function CHECK_FD_IF_EXIST() {
     local fd="$1"
     if [ -e "/proc/$$/fd/$fd" ]; then
         return 0

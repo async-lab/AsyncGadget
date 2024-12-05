@@ -28,11 +28,11 @@ OTHER_TMP_FILE=""
 DEPENDED_PACKAGES=()
 MANDATORY_PARAMS=()
 
-if ! CHECK_FD 3; then
-    exec 3<&0
+if ! CHECK_FD_IF_EXIST 233; then
+    exec 233<&0
 fi
 
-export STDIN="${STDIN:-3}"
+export SURFACE_LAYER_STDIN_FD="233"
 
 export CPU_CORE_NUM="$(grep -c '^processor' /proc/cpuinfo)"
 
@@ -92,13 +92,13 @@ function DEFAULT_CHECK_PARAMS() {
     if CHECK_IF_ALL_EXIST "${MANDATORY_PARAMS[@]}"; then
         return 0
     else
-        USAGE
         return 1
     fi
 }
 
 function DEFAULT_MAIN() {
     if ! CHECK_PACKAGES || ! CHECK_PARAMS; then
+        USAGE
         return 1
     fi
     return 0

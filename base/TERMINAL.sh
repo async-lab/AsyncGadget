@@ -12,6 +12,8 @@
 #   v
 #   y
 
+SURFACE_LAYER_STDIN_FD="${SURFACE_LAYER_STDIN_FD:-0}"
+
 function CLEAR() {
     echo -ne "\ec"
 }
@@ -123,7 +125,7 @@ function DEC_REQUEST() {
     local end_mark="$2"
 
     echo -ne "$request" >/dev/tty
-    read -d "$end_mark" -s -r response <&"$STDIN"
+    read -d "$end_mark" -s -r response <&"$SURFACE_LAYER_STDIN_FD"
     echo "$response"
 }
 
@@ -153,7 +155,7 @@ if command -v tput >/dev/null 2>&1; then
     WINDOW_INFO_SOURCE="TPUT"
 elif command -v stty >/dev/null 2>&1; then
     WINDOW_INFO_SOURCE="STTY"
-elif _CHECK_DECRQTSR <&"$STDIN"; then
+elif _CHECK_DECRQTSR <&"$SURFACE_LAYER_STDIN_FD"; then
     WINDOW_INFO_SOURCE="DEC"
 elif [ -n "$LINES" ]; then
     WINDOW_INFO_SOURCE="ENV"
@@ -165,7 +167,7 @@ function GET_LINES() {
         tput lines 2>/dev/null
         ;;
     "STTY")
-        stty size 2>/dev/nul <&"$STDIN" | cut -d' ' -f1
+        stty size 2>/dev/nul <&"$SURFACE_LAYER_STDIN_FD" | cut -d' ' -f1
         ;;
     "DEC")
         DECRQTSR | cut -d';' -f2
@@ -185,7 +187,7 @@ function GET_COLUMNS() {
         tput cols 2>/dev/null
         ;;
     "STTY")
-        stty size 2>/dev/nul <&"$STDIN" | cut -d' ' -f2
+        stty size 2>/dev/nul <&"$SURFACE_LAYER_STDIN_FD" | cut -d' ' -f2
         ;;
     "DEC")
         DECRQTSR | cut -d';' -f3

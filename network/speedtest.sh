@@ -128,7 +128,7 @@ function SPEEDTEST() {
 
 function USAGE() {
     LOG "用法："
-    LOG "speedtest.sh [节点(CN,HK)] [线程数(4)]"
+    LOG "speedtest.sh [节点(CN,HK,JP,SG,DE,FR,US)] [线程数(4)]"
 }
 
 function EXIT() {
@@ -142,7 +142,7 @@ function EXIT() {
 
 function CHECK_PARAMS() {
     CHECK_IF_ALL_EXIST "$THREAD_NUM" "$NODES"
-    return "$?"
+    return "$YES"
 }
 
 function LOG_ASCII_ART() {
@@ -154,8 +154,7 @@ function LOG_ASCII_ART() {
 }
 
 function MAIN() {
-    if ! CHECK_PARAMS; then
-        USAGE
+    if ! DEFAULT_MAIN; then
         EXIT 1
     fi
 
@@ -169,6 +168,7 @@ function MAIN() {
             local url="$(NODE_SELECTOR "$node")"
             if [ -z "$url" ]; then
                 LOG "未知的节点: $node"
+                USAGE
                 continue
             fi
 
