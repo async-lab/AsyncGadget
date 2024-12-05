@@ -41,10 +41,10 @@ function MAIN() {
     fi
 
     git pull &>"$STD_TMP_FILE" || true
-    local err="$(<"$STD_TMP_FILE")"
+    local res="$(<"$STD_TMP_FILE")"
 
-    if [ -n "$err" ]; then
-        LOG_MULTILINE "$err"
+    if [ -n "$res" ]; then
+        LOG_MULTILINE "$res"
         EXIT 1
     fi
 
