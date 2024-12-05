@@ -12,6 +12,7 @@ CERT_SYNC_BOT="$ROOT_DIR/misc/cert_sync_bot.sh"
 GIT_RELEASE_UPDATER="$ROOT_DIR/misc/git_release_updater.sh"
 STALKER="$ROOT_DIR/misc/stalker.sh"
 SYSTEMD_BOT="$ROOT_DIR/misc/systemd_bot.sh"
+UPDATE="$ROOT_DIR/misc/update.sh"
 AUTO_AUTH="$ROOT_DIR/network/auto_auth.sh"
 SIMPLE_AUTH="$ROOT_DIR/network/simple_auth.sh"
 SPEEDTEST="$ROOT_DIR/network/speedtest.sh"
@@ -44,6 +45,7 @@ function USAGE() {
     echo "      ——> git_release_updater"
     echo "      ——> stalker"
     echo "      ——> systemd_bot"
+    echo "      ——> update"
     echo "—— network"
     echo "      ——> auto_auth"
     echo "      ——> simple_auth"
@@ -70,6 +72,9 @@ function MAIN() {
         ;;
     "systemd_bot")
         $SYSTEMD_BOT "$@" &
+        ;;
+    "update")
+        $UPDATE "$@" &
         ;;
     "auto_auth")
         $AUTO_AUTH "$@" &
