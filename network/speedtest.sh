@@ -140,11 +140,6 @@ function EXIT() {
     DEFAULT_EXIT "$@"
 }
 
-function CHECK_PARAMS() {
-    CHECK_IF_ALL_EXIST "$THREAD_NUM" "$NODES"
-    return "$YES"
-}
-
 function LOG_ASCII_ART() {
     LOG
     LOG ' __ _  __ __ _ ___ __ _____'

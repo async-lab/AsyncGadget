@@ -27,6 +27,8 @@ VERSION_FILE="$1"
 JAR_FILE="$2"
 TEMP_FILE="$3"
 
+MANDATORY_PARAMS=("$OWNER" "$REPO")
+
 ##############################################
 ################# TOOLFUNC ###################
 
@@ -63,14 +65,8 @@ function USAGE() {
     LOG "git_release_updater.sh <VERSION_FILE> <JAR_FILE> <TEMP_FILE>"
 }
 
-function CHECK_PARAMS() {
-    CHECK_IF_ALL_EXIST "$OWNER" "$REPO"
-    return "$?"
-}
-
 function MAIN() {
-    if ! CHECK_PARAMS; then
-        USAGE
+    if ! DEFAULT_MAIN; then
         EXIT 1
     fi
 
