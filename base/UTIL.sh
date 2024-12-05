@@ -16,7 +16,12 @@ function CHECK_PACKAGE() {
     elif command -v pkg >/dev/null 2>&1; then
         pkg info "$1" >/dev/null 2>&1
     elif command -v opkg >/dev/null 2>&1; then
-        opkg list-installed | grep "$1" >/dev/null 2>&1
+        local output="$(opkg info "$1")"
+        if [ -n "$output" ]; then
+            return 0
+        else
+            return 1
+        fi
     else
         return 1
     fi
