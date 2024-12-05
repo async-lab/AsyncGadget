@@ -87,9 +87,9 @@ function MAIN() {
 
         rm -rf "$TEMP_FILE"
 
-        local is_successful=$(RETURN_AS_OUTPUT CURL -H "Accept:application/octet-stream" -o "$TEMP_FILE" "https://api.github.com/repos/$OWNER/$REPO/releases/assets/$latest_version")
+        local is_success=$(RETURN_AS_OUTPUT CURL -H "Accept:application/octet-stream" -o "$TEMP_FILE" "https://api.github.com/repos/$OWNER/$REPO/releases/assets/$latest_version")
 
-        if [ "$is_successful" -eq 0 ]; then
+        if [ "$is_success" -eq 0 ]; then
             LOG "下载完成!"
 
             mv "$JAR_FILE" "$JAR_FILE.bak"

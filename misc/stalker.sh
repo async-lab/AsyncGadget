@@ -20,7 +20,6 @@ SHOW_SOURCE="$*"
 
 PROCESS_TIME=0
 
-DEPENDED_PACKAGES=("fold")
 MANDATORY_PARAMS=("$SHOW_SOURCE")
 
 ##############################################
