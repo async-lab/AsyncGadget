@@ -36,7 +36,7 @@ function MAIN() {
     local err="$(<"$STD_TMP_FILE")"
 
     if [ -n "$err" ]; then
-        LOG "$err"
+        LOG_MULTILINE "$err"
         EXIT 1
     fi
 
@@ -44,7 +44,7 @@ function MAIN() {
     local err="$(<"$STD_TMP_FILE")"
 
     if [ -n "$err" ]; then
-        LOG "$err"
+        LOG_MULTILINE "$err"
         EXIT 1
     fi
 
