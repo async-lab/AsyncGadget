@@ -30,6 +30,17 @@ CHECK_RETRY="10"
 ##############################################
 ################# TOOLFUNC ###################
 
+function CHECK_NETWORK() {
+    local interface="$1"
+    if ping -I "$interface" -W "$CHECK_TIMEOUT" -c 1 "$CHECK_IP" >/dev/null; then
+        return "$YES"
+    elif ping -I "$interface" -W "$CHECK_TIMEOUT" -c "$CHECK_RETRY" "$CHECK_IP" >/dev/null; then
+        return "$YES"
+    else
+        return "$NO"
+    fi
+}
+
 ##############################################
 ################ PROCESSFUNC #################
 
@@ -74,6 +85,11 @@ function MAIN() {
 
     case "$METHOD" in
     "login")
+        if CHECK_NETWORK "$INTERFACE"; then
+            LOG "网络已连接"
+            EXIT 0
+        fi
+
         response="$(AUTH "$INTERFACE" "$ISP_NAME" "$USERNAME" "$PASSWORD")"
         is_success="$?"
         if IS_YES "$is_success"; then
