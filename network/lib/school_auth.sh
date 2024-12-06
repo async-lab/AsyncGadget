@@ -3,22 +3,28 @@
 
 AUTH_IP="10.254.241.19"
 ISP_MAPPING=("电信" "移动" "联通" "教育网")
+QUERY_IP="123.123.123.123"
 REQUEST_TIMEOUT="3"
 
 function AUTH() {
-    local interface="$1"
-    local isp_name="${ISP_MAPPING[$2]}"
-    local username="$3"
-    local password="$4"
+    local isp_name="${ISP_MAPPING[$1]}"
+    local username="$2"
+    local password="$3"
+    local interface="$4"
 
-    local gateway_ip="$(netstat -nr | grep "$interface" | grep "^0.0.0.0" | awk '{print $2}')"
+    local curl_func="curl"
+    if [ -n "$interface" ]; then
+        curl_func="curl --interface $interface"
+    fi
 
-    local query_result="$(curl --interface "$interface" -m "$REQUEST_TIMEOUT" -s "http://${gateway_ip}" | grep -o "http://${AUTH_IP}/eportal/index.jsp?[^'\"']*")"
+    # local gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')" # 原本是拿网关作为QUERY_IP
+
+    local query_result="$($curl_func -m "$REQUEST_TIMEOUT" -s "http://${QUERY_IP}" | grep -o "http://${AUTH_IP}/eportal/index.jsp?[^'\"']*")"
     local query_str="${query_result#*http://"${AUTH_IP}"/eportal/index.jsp?}"
 
     local referer_prefix="http://${AUTH_IP}/eportal/index.jsp?"
 
-    local response="$(curl --interface "$interface" -m "$REQUEST_TIMEOUT" -s \
+    local response="$($curl_func -m "$REQUEST_TIMEOUT" -s \
         -X POST \
         -H "Host: ${AUTH_IP}" \
         -H "Connection: keep-alive" \
@@ -52,7 +58,13 @@ function AUTH() {
 
 function LOGOUT() {
     local interface="$1"
-    local response="$(curl --interface "$interface" -m "$REQUEST_TIMEOUT" -s -X POST http://${AUTH_IP}/eportal/InterFace.do?method=logout)"
+
+    local curl_func="curl"
+    if [ -n "$interface" ]; then
+        curl_func="curl --interface $interface"
+    fi
+
+    local response="$($curl_func -m "$REQUEST_TIMEOUT" -s -X POST http://${AUTH_IP}/eportal/InterFace.do?method=logout)"
 
     if [[ "$response" == *"success"* ]]; then
         return "$YES"

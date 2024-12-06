@@ -23,9 +23,6 @@ WAIT_TIME="$(PERIOD_TO_SECONDS "${3:-"2h"}")"
 
 FAILED_RETRY_TIME=180
 
-CHECK_IP="223.5.5.5"
-CHECK_TIMEOUT="3"
-CHECK_RETRY="10"
 START_TABLE="2333"
 START_RULE="100"
 
@@ -35,17 +32,6 @@ MANDATORY_PARAMS=("$ACCOUNT_FILE" "$SLEEP_TIME" "$WAIT_TIME")
 
 ##############################################
 ################# TOOLFUNC ###################
-
-function CHECK_NETWORK() {
-    local interface="$1"
-    if ping -I "$interface" -W "$CHECK_TIMEOUT" -c 1 "$CHECK_IP" >/dev/null; then
-        return "$YES"
-    elif ping -I "$interface" -W "$CHECK_TIMEOUT" -c "$CHECK_RETRY" "$CHECK_IP" >/dev/null; then
-        return "$YES"
-    else
-        return "$NO"
-    fi
-}
 
 ##############################################
 ################ PROCESSFUNC #################
@@ -121,9 +107,8 @@ function ADD_IP_ROUTING() {
 
     for ((i = 1; i <= macvlan_num; i++)); do
         local interface="macvlan$i"
-        local gateway_ip="$(netstat -nr | grep "$interface" | grep "^0.0.0.0" | awk '{print $2}')"
 
-        NO_OUTPUT ip route add "$AUTH_IP" via "$gateway_ip" dev "$interface" table "$((START_TABLE + i))"
+        NO_OUTPUT ip route add "$AUTH_IP" via "$QUERY_IP" dev "$interface" table "$((START_TABLE + i))"
         NO_OUTPUT ip rule add pref "$((START_RULE + i))" from all to "$AUTH_IP" oif "$interface" lookup "$((START_TABLE + i))"
     done
 }
@@ -141,7 +126,7 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
             local account="${ACCOUNTS[j]}"
             IFS=',' read -r -a account_arr <<<"$account"
             if [ "${account_arr[3]}" -eq 0 ] && [ "$(($(date +%s) - account_arr[4]))" -gt "$WAIT_TIME" ]; then
-                response="$(AUTH "$interface" "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}")"
+                local response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}")" "$interface"
                 has_auth="$?"
                 if IS_YES "$has_auth"; then
                     LOG "接口 $interface 上线！账号: ${account_arr[1]}"

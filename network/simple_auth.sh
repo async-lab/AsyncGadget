@@ -18,28 +18,13 @@ source "$ROOT_DIR/network/lib/school_auth.sh"
 ################### GLOBAL ###################
 
 METHOD="$1"
-INTERFACE="$2"
-ISP_NAME="$3"
-USERNAME="$4"
-PASSWORD="$5"
-
-CHECK_IP="223.5.5.5"
-CHECK_TIMEOUT="3"
-CHECK_RETRY="10"
+ISP_NAME="$2"
+USERNAME="$3"
+PASSWORD="$4"
+INTERFACE="$5"
 
 ##############################################
 ################# TOOLFUNC ###################
-
-function CHECK_NETWORK() {
-    local interface="$1"
-    if ping -I "$interface" -W "$CHECK_TIMEOUT" -c 1 "$CHECK_IP" >/dev/null; then
-        return "$YES"
-    elif ping -I "$interface" -W "$CHECK_TIMEOUT" -c "$CHECK_RETRY" "$CHECK_IP" >/dev/null; then
-        return "$YES"
-    else
-        return "$NO"
-    fi
-}
 
 ##############################################
 ################ PROCESSFUNC #################
@@ -49,8 +34,8 @@ function CHECK_NETWORK() {
 
 function USAGE() {
     LOG "用法:"
-    LOG "simple_auth.sh login <网卡> <ISP(0:电信/1:移动/2:联通/3:教育网)> <账号> <密码>"
-    LOG "simple_auth.sh logout <网卡>"
+    LOG "simple_auth.sh login <ISP(0:电信/1:移动/2:联通/3:教育网)> <账号> <密码> [网卡]"
+    LOG "simple_auth.sh logout [网卡]"
 }
 
 function CHECK_PARAMS() {
@@ -59,15 +44,11 @@ function CHECK_PARAMS() {
     fi
     case "$METHOD" in
     "login")
-        if ! CHECK_IF_ALL_EXIST "$INTERFACE" "$ISP_NAME" "$USERNAME" "$PASSWORD"; then
+        if ! CHECK_IF_ALL_EXIST "$ISP_NAME" "$USERNAME" "$PASSWORD"; then
             return "$NO"
         fi
         ;;
-    "logout")
-        if ! CHECK_IF_ALL_EXIST "$INTERFACE"; then
-            return "$NO"
-        fi
-        ;;
+    "logout") ;;
     *)
         return "$NO"
         ;;
@@ -90,7 +71,7 @@ function MAIN() {
             EXIT 0
         fi
 
-        response="$(AUTH "$INTERFACE" "$ISP_NAME" "$USERNAME" "$PASSWORD")"
+        response="$(AUTH "$ISP_NAME" "$USERNAME" "$PASSWORD" "$INTERFACE")"
         is_success="$?"
         if IS_YES "$is_success"; then
             LOG "登录成功"
