@@ -3,7 +3,7 @@
 
 NETWORK_CHECK_IP="223.5.5.5"
 NETWORK_CHECK_TIMEOUT="3"
-NETWORK_CHECK_RETRY="10"
+NETWORK_CHECK_RETRY="5"
 
 function CHECK_NETWORK() {
     local interface="$1"
@@ -16,7 +16,13 @@ function CHECK_NETWORK() {
 
     if $ping_func -W "$NETWORK_CHECK_TIMEOUT" -c 1 "$NETWORK_CHECK_IP" >/dev/null; then
         return 0
-    elif $ping_func -W "$NETWORK_CHECK_TIMEOUT" -c "$NETWORK_CHECK_RETRY" "$NETWORK_CHECK_IP" >/dev/null; then
+    fi
+
+    if [ "$NETWORK_CHECK_RETRY" -eq 0 ]; then
+        return 1
+    fi
+
+    if $ping_func -W "$NETWORK_CHECK_TIMEOUT" -c "$NETWORK_CHECK_RETRY" "$NETWORK_CHECK_IP" >/dev/null; then
         return 0
     else
         return 1

@@ -107,8 +107,9 @@ function ADD_IP_ROUTING() {
 
     for ((i = 1; i <= macvlan_num; i++)); do
         local interface="macvlan$i"
+        local gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')"
 
-        NO_OUTPUT ip route add "$AUTH_IP" via "$QUERY_IP" dev "$interface" table "$((START_TABLE + i))"
+        NO_OUTPUT ip route add "$AUTH_IP" via "$gateway_ip" dev "$interface" table "$((START_TABLE + i))"
         NO_OUTPUT ip rule add pref "$((START_RULE + i))" from all to "$AUTH_IP" oif "$interface" lookup "$((START_TABLE + i))"
     done
 }
@@ -126,7 +127,7 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
             local account="${ACCOUNTS[j]}"
             IFS=',' read -r -a account_arr <<<"$account"
             if [ "${account_arr[3]}" -eq 0 ] && [ "$(($(date +%s) - account_arr[4]))" -gt "$WAIT_TIME" ]; then
-                local response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}")" "$interface"
+                local response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}" "$interface")"
                 has_auth="$?"
                 if IS_YES "$has_auth"; then
                     LOG "接口 $interface 上线！账号: ${account_arr[1]}"
