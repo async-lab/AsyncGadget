@@ -3,7 +3,6 @@
 
 AUTH_IP="10.254.241.19"
 ISP_MAPPING=("电信" "移动" "联通" "教育网")
-QUERY_IP="123.123.123.123"
 REQUEST_TIMEOUT="3"
 
 function AUTH() {
@@ -17,9 +16,9 @@ function AUTH() {
         curl_func="curl --interface $interface"
     fi
 
-    # local gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')" # 原本是拿网关作为QUERY_IP
+    local gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')" #用网关做query ip可以省一个路由规则，因为链上的不需要路由
 
-    local query_result="$($curl_func -m "$REQUEST_TIMEOUT" -s "http://${QUERY_IP}" | grep -o "http://${AUTH_IP}/eportal/index.jsp?[^'\"']*")"
+    local query_result="$($curl_func -m "$REQUEST_TIMEOUT" -s "http://${gateway_ip}" | grep -o "http://${AUTH_IP}/eportal/index.jsp?[^'\"']*")"
     local query_str="${query_result#*http://"${AUTH_IP}"/eportal/index.jsp?}"
 
     local referer_prefix="http://${AUTH_IP}/eportal/index.jsp?"
