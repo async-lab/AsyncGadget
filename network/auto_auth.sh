@@ -128,7 +128,6 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
             IFS=',' read -r -a account_arr <<<"$account"
             if [ "${account_arr[3]}" -eq 0 ] && [ "$(($(date +%s) - account_arr[4]))" -gt "$WAIT_TIME" ]; then
                 local response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}" "$interface")"
-                has_auth="$?"
                 if IS_YES "$has_auth"; then
                     LOG "接口 $interface 上线！账号: ${account_arr[1]}"
                     account_arr[3]="$i"
