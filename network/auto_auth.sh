@@ -117,17 +117,19 @@ function ADD_IP_ROUTING() {
 function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
     local interface="$1"
 
-    local has_auth="$YES"
+    local no_offline="$YES"
 
     if ! CHECK_NETWORK "$interface"; then
         LOG "接口 $interface 无网络连接"
 
-        has_auth="$NO"
+        no_offline="$NO"
+        local has_auth="$NO"
         for ((j = 0; j < ${#ACCOUNTS[@]}; j++)); do
             local account="${ACCOUNTS[j]}"
             IFS=',' read -r -a account_arr <<<"$account"
             if [ "${account_arr[3]}" -eq 0 ] && [ "$(($(date +%s) - account_arr[4]))" -gt "$WAIT_TIME" ]; then
                 local response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}" "$interface")"
+                has_auth="$?"
                 if IS_YES "$has_auth"; then
                     LOG "接口 $interface 上线！账号: ${account_arr[1]}"
                     account_arr[3]="$i"
@@ -155,7 +157,7 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
         fi
     fi
 
-    return "$has_auth"
+    return "$no_offline"
 }
 
 ##############################################
