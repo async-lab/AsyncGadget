@@ -44,7 +44,7 @@ function LOAD_ACCOUNTS() {
     local accounts_from_file=()
     while IFS=, read -r isp username password; do
         if CHECK_IF_ALL_EXIST "$isp" "$username" "$password"; then
-            accounts_from_file+=("${isp},${username},${password},0,0") # isp, username, password, interface, last_try_time
+            accounts_from_file+=("$(TRIM "$isp"),$(TRIM "$username"),$(TRIM "$password"),0,0") # isp, username, password, interface, last_try_time
         else
             return "$NO"
         fi
@@ -128,7 +128,8 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
             local account="${ACCOUNTS[j]}"
             IFS=',' read -r -a account_arr <<<"$account"
             if [ "${account_arr[3]}" -eq 0 ] && [ "$(($(date +%s) - account_arr[4]))" -gt "$WAIT_TIME" ]; then
-                local response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}" "$interface")"
+                local response
+                response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}" "$interface")"
                 has_auth="$?"
                 if IS_YES "$has_auth"; then
                     LOG "接口 $interface 上线！账号: ${account_arr[1]}"

@@ -83,3 +83,9 @@ function GET_SYSTEM_STAMP() {
     local now_stamp="$(awk '{print $1}' <"/proc/uptime")"
     echo "${now_stamp//./}"
 }
+
+function TRIM() {
+    local str="$1"
+
+    echo "${str}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}

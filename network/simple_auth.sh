@@ -18,7 +18,7 @@ source "$ROOT_DIR/network/lib/school_auth.sh"
 ################### GLOBAL ###################
 
 METHOD="$1"
-ISP_NAME="$2"
+ISP="$2"
 USERNAME="$3"
 PASSWORD="$4"
 INTERFACE="$5"
@@ -44,7 +44,7 @@ function CHECK_PARAMS() {
     fi
     case "$METHOD" in
     "login")
-        if ! CHECK_IF_ALL_EXIST "$ISP_NAME" "$USERNAME" "$PASSWORD"; then
+        if ! CHECK_IF_ALL_EXIST "$ISP" "$USERNAME" "$PASSWORD"; then
             return "$NO"
         fi
         ;;
@@ -71,7 +71,7 @@ function MAIN() {
             EXIT 0
         fi
 
-        response="$(AUTH "$ISP_NAME" "$USERNAME" "$PASSWORD" "$INTERFACE")"
+        response="$(AUTH "$ISP" "$USERNAME" "$PASSWORD" "$INTERFACE")"
         is_success="$?"
         if IS_YES "$is_success"; then
             LOG "登录成功"
