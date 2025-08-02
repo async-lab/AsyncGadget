@@ -5,7 +5,7 @@
 
 # MODULE_NAME="JSON"
 
-DIR="$(readlink -f "$(dirname "$0")")"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 

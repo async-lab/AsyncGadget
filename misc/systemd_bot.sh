@@ -8,7 +8,7 @@
 
 MODULE_NAME="systemd_bot"
 
-DIR=$(readlink -f "$(dirname "$0")")
+DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/STD.sh"
@@ -27,22 +27,28 @@ MANDATORY_PARAMS=("$METHOD" "$TYPE" "$NAME")
 ################ PROCESSFUNC #################
 
 function CREATE_SERVICE() {
-    cat <<EOF >"/etc/systemd/system/$1.service"
+    local name="$1"
+    local path="$(cd "$(dirname "$(which "$2")")" && pwd)/$(basename "$2")"
+    local workdir="$(cd "$(dirname "$(which "$path")")" && pwd)"
+
+    cat <<EOF >"/etc/systemd/system/${name}.service"
 [Unit]
-Description=$1
+Description=$name
 After=network.target
 
 [Service]
-ExecStart=$2
+ExecStart=$path
+WorkingDirectory=$workdir
 User=root
 Group=root
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
-    systemctl enable "$1"
-    systemctl restart "$1"
+    systemctl enable "$name"
+    systemctl restart "$name"
 }
 
 function CREATE_TIMER() {
@@ -94,12 +100,6 @@ function MAIN() {
         if [ -z "$PARAM" ]; then
             USAGE
             EXIT 1
-        fi
-
-        local path="$(readlink -f "$(dirname "$PARAM")")/$(basename "$PARAM")"
-
-        if [ -x "$path" ]; then
-            PARAM="$path"
         fi
 
         case "$TYPE" in
