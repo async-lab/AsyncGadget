@@ -20,6 +20,7 @@ METHOD="$1"
 TYPE="$2"
 NAME="$3"
 PARAM="$4"
+ARGS=("${@:5}")
 
 MANDATORY_PARAMS=("$METHOD" "$TYPE" "$NAME")
 
@@ -28,8 +29,9 @@ MANDATORY_PARAMS=("$METHOD" "$TYPE" "$NAME")
 
 function CREATE_SERVICE() {
     local name="$1"
-    local path="$(cd "$(dirname "$(which "$2")")" && pwd)/$(basename "$2")"
-    local workdir="$(cd "$(dirname "$(which "$path")")" && pwd)"
+    local exec="$(cd "$(dirname "$(which "$2")")" && pwd)/$(basename "$2")"
+    local workdir="$(cd "$(dirname "$(which "$exec")")" && pwd)"
+    local args="${ARGS[*]}"
 
     cat <<EOF >"/etc/systemd/system/${name}.service"
 [Unit]
@@ -37,7 +39,7 @@ Description=$name
 After=network.target
 
 [Service]
-ExecStart=$path
+ExecStart=$exec $args
 WorkingDirectory=$workdir
 User=root
 Group=root
@@ -87,7 +89,7 @@ function DELETE_TIMER() {
 
 function USAGE() {
     LOG "请输入正确的参数!"
-    LOG "用法: systemd_bot.sh <create|delete> <service/timer> <name> <path/OnCalendar>"
+    LOG "用法: systemd_bot.sh <create|delete> <service/timer> <name> <path and args/OnCalendar>"
 }
 
 function MAIN() {
@@ -104,7 +106,7 @@ function MAIN() {
 
         case "$TYPE" in
         "service")
-            CREATE_SERVICE "$NAME" "$PARAM"
+            CREATE_SERVICE "$NAME" "$PARAM" "${ARGS[@]}"
             ;;
         "timer")
             CREATE_TIMER "$NAME" "$PARAM"
