@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 
+# 空操作
+function NOOP() {
+    true
+}
+
+# 关闭命令的标准输出
+function NO_STDOUT() {
+    "$@" >/dev/null
+    return "$?"
+}
+
+# 关闭命令的错误输出
+function NO_ERR() {
+    "$@" 2>/dev/null
+    return "$?"
+}
+
 # 关闭命令的输出
 function NO_OUTPUT() {
     "$@" >/dev/null 2>&1

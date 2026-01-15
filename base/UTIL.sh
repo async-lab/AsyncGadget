@@ -29,22 +29,6 @@ function CHECK_PACKAGE() {
     return "$?"
 }
 
-# URL 编码函数
-function URLENCODE() {
-    local length="${#1}"
-    for ((i = 0; i < length; i++)); do
-        local c="${1:i:1}"
-        case $c in
-        [a-zA-Z0-9.~_-])
-            printf '%s\n' "$c"
-            ;;
-        *)
-            printf '%%%02X' "'$c"
-            ;;
-        esac
-    done
-}
-
 function PERIOD_TO_SECONDS() {
     local period="$1"
 
@@ -84,8 +68,18 @@ function GET_SYSTEM_STAMP() {
     echo "${now_stamp//./}"
 }
 
-function TRIM() {
-    local str="$1"
+function IS_RUNNING() {
+    local pid="$1"
 
-    echo "${str}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+    if [ -r "/proc/$pid/stat" ]; then
+        local state
+        state="$(NO_ERR awk "{print \$3}" "/proc/$pid/stat")"
+        if [ -z "$state" ] || [ "$state" == "Z" ]; then
+            return 1
+        fi
+        return 0
+    fi
+
+    NO_OUTPUT kill -0 "$pid"
+    return "$?"
 }

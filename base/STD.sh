@@ -15,6 +15,9 @@ source "$ROOT_DIR/base/LOGIC.sh"
 source "$ROOT_DIR/base/NETWORK.sh"
 source "$ROOT_DIR/base/UTIL.sh"
 source "$ROOT_DIR/base/TERMINAL.sh"
+source "$ROOT_DIR/base/FILE.sh"
+source "$ROOT_DIR/base/CONVERT.sh"
+source "$ROOT_DIR/base/MATH.sh"
 
 ##############################################
 ################### GLOBAL ###################
@@ -40,6 +43,19 @@ export CPU_CORE_NUM="$(grep -c '^processor' /proc/cpuinfo)"
 ##############################################
 ################# TOOLFUNC ###################
 
+function MAKE_GADGET_TMP_NAME() {
+    local scopes=("$@")
+    local combined_scope
+    
+    combined_scope=$(IFS=.; echo "${scopes[*]}")
+    
+    if [ -z "$combined_scope" ]; then
+        combined_scope="common"
+    fi
+
+    printf "/tmp/gadget.%s.XXXXXX" "$combined_scope"
+}
+
 # 说来话长，如果trap了结束信号之后sleep，则这时无法触发trap指定的函数
 # 所以这里将trap和主进程分离，保证trap的有效性
 #
@@ -47,12 +63,15 @@ export CPU_CORE_NUM="$(grep -c '^processor' /proc/cpuinfo)"
 # 如果子shell不耗时访问资源还好，耗时的话就会导致主shell结束了子shell还在访问资源
 # 所以用一个文件去存标准输出，就可以在一个shell内完成函数给变量赋值的操作
 function RUN_MAIN() {
-    STD_FIFO="$(mktemp -u "/tmp/gadget_fifo.XXXXXX")"
+    STD_FIFO="$(mktemp -u "$(MAKE_GADGET_TMP_NAME "std" "fifo")")"
     mkfifo "$STD_FIFO"
-    STD_TMP_FILE="$(mktemp "/tmp/gadget_std_tmp.XXXXXX")"
-    DATA_TMP_FILE="$(mktemp "/tmp/gadget_data_tmp.XXXXXX")"
-    PIDS_TMP_FILE="$(mktemp "/tmp/gadget_pids_tmp.XXXXXX")"
-    OTHER_TMP_FILE="$(mktemp "/tmp/gadget_other_tmp.XXXXXX")"
+    STD_TMP_FILE="$(mktemp "$(MAKE_GADGET_TMP_NAME "std" "tmp")")"
+    DATA_TMP_FILE="$(mktemp "$(MAKE_GADGET_TMP_NAME "std" "data")")"
+    PIDS_TMP_FILE="$(mktemp "$(MAKE_GADGET_TMP_NAME "std" "pids")")"
+    OTHER_TMP_FILE="$(mktemp "$(MAKE_GADGET_TMP_NAME "std" "other")")"
+
+    # TODO: TRASH_TMP_FILE
+
     "$@" &
     MAIN_PID="$!"
     wait "$MAIN_PID"
