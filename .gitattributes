@@ -1,0 +1,9 @@
+* text=auto
+
+# Keep scripts runnable on Linux/OpenWrt (avoid CRLF -> bash `$'\r'` syntax errors)
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.init text eol=lf
+LICENSE text eol=lf
+
