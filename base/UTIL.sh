@@ -29,25 +29,6 @@ function CHECK_PACKAGE() {
     return "$?"
 }
 
-function PERIOD_TO_SECONDS() {
-    local period="$1"
-
-    case "$period" in
-    *[0-9]s)
-        echo "${period%s}"
-        ;;
-    *[0-9]m)
-        echo $((${period%m} * 60))
-        ;;
-    *[0-9]h)
-        echo $((${period%h} * 3600))
-        ;;
-    *)
-        echo ""
-        ;;
-    esac
-}
-
 function FIND_POSITION() {
     local str="$1"
     local sub="$2"

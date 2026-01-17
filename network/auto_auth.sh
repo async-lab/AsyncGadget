@@ -19,7 +19,7 @@ source "$ROOT_DIR/network/lib/school_auth.sh"
 
 ACCOUNT_FILE="$1"
 SLEEP_TIME="${2:-10}"
-WAIT_TIME="$(PERIOD_TO_SECONDS "${3:-"2h"}")"
+WAIT_TIME="$(PERIOD_TO_SECONDS "${3:-"1h"}")"
 
 FAILED_RETRY_TIME=180
 

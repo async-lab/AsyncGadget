@@ -72,3 +72,22 @@ function HUMAN_TO_RAW() {
 
     awk -v n="$number" -v f="$factor" 'BEGIN { printf "%.0f", n * f }'
 }
+
+function PERIOD_TO_SECONDS() {
+    local period="$1"
+
+    case "$period" in
+    *[0-9]s)
+        echo "${period%s}"
+        ;;
+    *[0-9]m)
+        echo $((${period%m} * 60))
+        ;;
+    *[0-9]h)
+        echo $((${period%h} * 3600))
+        ;;
+    *)
+        echo ""
+        ;;
+    esac
+}
