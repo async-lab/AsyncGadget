@@ -167,7 +167,7 @@ function GET_LINES() {
         tput lines 2>/dev/null
         ;;
     "STTY")
-        stty size 2>/dev/nul <&"$SURFACE_LAYER_STDIN_FD" | cut -d' ' -f1
+        stty size 2>/dev/null <&"$SURFACE_LAYER_STDIN_FD" | cut -d' ' -f1
         ;;
     "DEC")
         DECRQTSR | cut -d';' -f2

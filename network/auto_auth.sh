@@ -204,7 +204,7 @@ function MAIN() {
     LOG "macvlan数量: $macvlan_num"
 
     if [ "$macvlan_num" -eq 0 ]; then
-        LOG "未找到macvlan接口！"
+        LOG "未找到macvlan接口!"
         EXIT 1
     fi
 

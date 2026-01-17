@@ -34,7 +34,7 @@ function FIND_POSITION() {
     local sub="$2"
 
     local sub_length=${#sub}
-    local end=$(("${#str}" - length + 1))
+    local end=$(("${#str}" - sub_length + 1))
     local i
 
     for ((i = 0; i < end; i++)); do

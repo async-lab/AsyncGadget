@@ -105,7 +105,7 @@ function MAIN() {
                 fi
 
                 rm -rf "$JAR_FILE.bak"
-                echo "$latest_version" >./version
+                echo "$latest_version" >"$VERSION_FILE"
                 LOG "服务重启成功!"
             fi
         else
