@@ -16,14 +16,21 @@ function AUTH() {
         curl_func="curl --interface $interface"
     fi
 
+    local cookie_file=""
+    cookie_file="$(mktemp -t auth_cookie.XXXXXX 2>/dev/null || mktemp /tmp/auth_cookie.XXXXXX 2>/dev/null || true)"
+    if [ -z "$cookie_file" ]; then
+        cookie_file="/tmp/auth_cookie_$$"
+        rm -f "$cookie_file" 2>/dev/null || true
+    fi
+
     local gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')" #用网关做query ip可以省一个路由规则，因为链上的不需要路由
 
-    local query_result="$($curl_func -m "$REQUEST_TIMEOUT" -s "http://${gateway_ip}" | grep -o "http://${AUTH_IP}/eportal/index.jsp?[^'\"']*")"
+    local query_result="$($curl_func -m "$REQUEST_TIMEOUT" -s "http://${gateway_ip}" | grep -o "http://${AUTH_IP}/eportal/index\.jsp?[^\"' ]*")"
     local query_str="${query_result#*http://"${AUTH_IP}"/eportal/index.jsp?}"
 
     local referer_prefix="http://${AUTH_IP}/eportal/index.jsp?"
 
-    local response="$($curl_func -m "$REQUEST_TIMEOUT" -s \
+    local response="$($curl_func -m "$REQUEST_TIMEOUT" -s -c "$cookie_file" \
         -X POST \
         -H "Host: ${AUTH_IP}" \
         -H "Connection: keep-alive" \
@@ -45,11 +52,21 @@ function AUTH() {
         "http://${AUTH_IP}/eportal/InterFace.do?method=login")"
 
     if [[ "$response" == *"success"* ]]; then
+        local cookie_value=""
+        if [ -f "$cookie_file" ]; then
+            cookie_value="$(awk '$6=="JSESSIONID"{print $7}' "$cookie_file" | tail -n1)"
+        fi
+        rm -f "$cookie_file" 2>/dev/null || true
+        if [ -n "$cookie_value" ]; then
+            echo "JSESSIONID=$cookie_value"
+        fi
         return "$YES"
     elif [ -z "$response" ]; then
+        rm -f "$cookie_file" 2>/dev/null || true
         echo "无回复"
         return "$NO"
     else
+        rm -f "$cookie_file" 2>/dev/null || true
         echo "$response"
         return "$NO"
     fi
@@ -70,6 +87,117 @@ function LOGOUT() {
     elif [ -z "$response" ]; then
         echo "无回复"
         return "$NO"
+    else
+        echo "$response"
+        return "$NO"
+    fi
+}
+
+function GET_ONLINE_USER_INFO() {
+    local interface="$1"
+    local user_index="$2"
+    local cookie_file="$3"
+    local keepalive_interval="${4:-0}"
+
+    if [ -z "$user_index" ]; then
+        echo "缺少userIndex"
+        return "$NO"
+    fi
+
+    local curl_func="curl"
+    if [ -n "$interface" ]; then
+        curl_func="curl --interface $interface"
+    fi
+
+    local -a cookie_args=()
+    if [ -n "$cookie_file" ]; then
+        if [ -f "$cookie_file" ]; then
+            cookie_args=(-b "$cookie_file")
+        elif [[ "$cookie_file" == *"="* ]]; then
+            cookie_args=(-b "$cookie_file")
+        fi
+    fi
+
+    local referer="http://${AUTH_IP}/eportal/success.jsp?userIndex=$user_index&keepaliveInterval=$keepalive_interval"
+
+    local response="$($curl_func -m "$REQUEST_TIMEOUT" -s \
+        "${cookie_args[@]}" \
+        -X POST \
+        -H "Host: ${AUTH_IP}" \
+        -H "Connection: keep-alive" \
+        -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.76" \
+        -H "Accept: */*" \
+        -H "Origin: http://${AUTH_IP}" \
+        -H "Referer: $referer" \
+        -H "Accept-Encoding: gzip, deflate" \
+        -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6" \
+        -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
+        --data-urlencode "userIndex=$user_index" \
+        "http://${AUTH_IP}/eportal/InterFace.do?method=getOnlineUserInfo")"
+
+    if [ -z "$response" ]; then
+        echo "无回复"
+        return "$NO"
+    fi
+
+    echo "$response"
+
+    if [[ "$response" == *"\"result\":\"success\""* ]] || [[ "$response" == *"\"result\":\"wait\""* ]]; then
+        return "$YES"
+    fi
+    return "$NO"
+}
+
+function KEEPALIVE() {
+    local interface="$1"
+    local user_index="$2"
+    local cookie_file="$3"
+    local keepalive_interval="${4:-0}"
+
+    if [ -z "$user_index" ]; then
+        echo "缺少userIndex"
+        return "$NO"
+    fi
+
+    local curl_func="curl"
+    if [ -n "$interface" ]; then
+        curl_func="curl --interface $interface"
+    fi
+
+    local -a cookie_args=()
+    if [ -n "$cookie_file" ]; then
+        if [ -f "$cookie_file" ]; then
+            cookie_args=(-b "$cookie_file")
+        elif [[ "$cookie_file" == *"="* ]]; then
+            cookie_args=(-b "$cookie_file")
+        fi
+    fi
+
+    local referer="http://${AUTH_IP}/eportal/success.jsp?userIndex=$user_index&keepaliveInterval=$keepalive_interval"
+
+    local response="$($curl_func -m "$REQUEST_TIMEOUT" -s \
+        "${cookie_args[@]}" \
+        -X POST \
+        -H "Host: ${AUTH_IP}" \
+        -H "Connection: keep-alive" \
+        -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.76" \
+        -H "Accept: */*" \
+        -H "Origin: http://${AUTH_IP}" \
+        -H "Referer: $referer" \
+        -H "Accept-Encoding: gzip, deflate" \
+        -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6" \
+        -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" \
+        --data-urlencode "userIndex=$user_index" \
+        "http://${AUTH_IP}/eportal/InterFace.do?method=keepalive")"
+
+    if [ -z "$response" ]; then
+        echo "无回复"
+        return "$NO"
+    fi
+
+    if [[ "$response" == *"success"* ]]; then
+        echo "$response"
+        return "$YES"
     else
         echo "$response"
         return "$NO"

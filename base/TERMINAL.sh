@@ -187,7 +187,7 @@ function GET_COLUMNS() {
         tput cols 2>/dev/null
         ;;
     "STTY")
-        stty size 2>/dev/nul <&"$SURFACE_LAYER_STDIN_FD" | cut -d' ' -f2
+        stty size 2>/dev/null <&"$SURFACE_LAYER_STDIN_FD" | cut -d' ' -f2
         ;;
     "DEC")
         DECRQTSR | cut -d';' -f3

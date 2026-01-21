@@ -18,17 +18,26 @@ source "$ROOT_DIR/network/lib/school_auth.sh"
 ################### GLOBAL ###################
 
 ACCOUNT_FILE="$1"
-SLEEP_TIME="${2:-10}"
-WAIT_TIME="$(PERIOD_TO_SECONDS "${3:-"1h"}")"
-
-FAILED_RETRY_TIME=180
+SLEEP_TIME="$(PERIOD_TO_SECONDS "10s")"
+FAILED_RETRY_TIME="$(PERIOD_TO_SECONDS "3m")"
 
 START_TABLE="2333"
 START_RULE="100"
 
-ACCOUNTS=()
+# 账号池（按 username 做 key，避免维护“结构体数组”）
+declare -A ACCOUNT_ISP=()       # username -> isp
+declare -A ACCOUNT_PASSWORD=()  # username -> password
+declare -A ACCOUNT_BIND=()      # username -> interface_id(从1开始；0表示未绑定)
+declare -A ACCOUNT_LAST_TRY=()  # username -> epoch seconds
+ACCOUNTS_ORDER=()              # 账号尝试顺序（来自文件的顺序）
 
-MANDATORY_PARAMS=("$ACCOUNT_FILE" "$SLEEP_TIME" "$WAIT_TIME")
+# 接口列表（按 macvlan 数字后缀排序）
+MACVLAN_INTERFACES=()
+
+# 接口状态机（只在状态变化时输出）
+declare -A INTERFACE_STATE=()
+
+MANDATORY_PARAMS=("$ACCOUNT_FILE")
 
 ##############################################
 ################# TOOLFUNC ###################
@@ -41,124 +50,224 @@ function LOAD_ACCOUNTS() {
         return "$NO"
     fi
 
-    local accounts_from_file=()
-    while IFS=, read -r isp username password; do
-        if CHECK_IF_ALL_EXIST "$isp" "$username" "$password"; then
-            accounts_from_file+=("$(TRIM "$isp"),$(TRIM "$username"),$(TRIM "$password"),0,0") # isp, username, password, interface, last_try_time
-        else
+    # 先解析到临时结构里，保证“文件有问题时不污染内存账号池”
+    local -A seen=()
+    local next_order=()
+    local -A next_isp=()
+    local -A next_password=()
+    local -A next_bind=()
+    local -A next_last_try=()
+    local isp="" username="" password=""
+
+    while true; do
+        isp=""
+        username=""
+        password=""
+
+        IFS=, read -r isp username password || {
+            # 兼容文件最后一行缺少换行符的情况：有内容就处理，无内容就退出
+            if [ -z "$isp$username$password" ]; then
+                break
+            fi
+        }
+
+        isp="$(TRIM "$isp")"
+        username="$(TRIM "$username")"
+        password="$(TRIM "$password")"
+
+        # 跳过空行 / 注释
+        if [ -z "$isp" ] && [ -z "$username" ] && [ -z "$password" ]; then
+            continue
+        fi
+        case "$isp" in
+        \#*) continue ;;
+        esac
+
+        if ! CHECK_IF_ALL_EXIST "$isp" "$username" "$password"; then
             return "$NO"
         fi
+
+        # 同一用户名在文件里重复出现时：以最后一次为准，但不重复加入顺序列表
+        if [ -z "${seen[$username]+_}" ]; then
+            seen["$username"]=1
+            next_order+=("$username")
+
+            if [ -n "${ACCOUNT_ISP[$username]+_}" ]; then
+                # 账号已存在：保留运行时状态（绑定/冷却）
+                next_bind["$username"]="${ACCOUNT_BIND[$username]:-0}"
+                next_last_try["$username"]="${ACCOUNT_LAST_TRY[$username]:-0}"
+            else
+                # 新账号
+                next_bind["$username"]=0
+                next_last_try["$username"]=0
+            fi
+        fi
+
+        next_isp["$username"]="$isp"
+        next_password["$username"]="$password"
     done <"$ACCOUNT_FILE"
 
-    for ((i = 0; i < ${#accounts_from_file[@]}; i++)); do
-        local account_from_file="${accounts_from_file[$i]}"
-        IFS=',' read -r -a account_from_file_arr <<<"$account_from_file"
-        local is_exist="$NO"
-        for ((j = 0; j < ${#ACCOUNTS[@]}; j++)); do
-            local account="${ACCOUNTS[$j]}"
-            IFS=',' read -r -a account_arr <<<"$account"
-            if [ "${account_arr[1]}" == "${account_from_file_arr[1]}" ]; then
-                is_exist="$YES"
-                break
-            fi
-        done
-
-        if IS_NO "$is_exist"; then
-            LOG "新增账号: ${account_from_file_arr[1]}"
-            ACCOUNTS+=("$account_from_file")
+    # 变更日志（新增/删除）
+    local old_username
+    for old_username in "${next_order[@]}"; do
+        if [ -z "${ACCOUNT_ISP[$old_username]+_}" ]; then
+            LOG "新增账号: $old_username"
         fi
     done
 
-    for ((i = 0; i < ${#ACCOUNTS[@]}; i++)); do
-        local account="${ACCOUNTS[$i]}"
-        IFS=',' read -r -a account_arr <<<"$account"
-        local is_exist="$NO"
-        for ((j = 0; j < ${#accounts_from_file[@]}; j++)); do
-            local account_from_file="${accounts_from_file[$j]}"
-            IFS=',' read -r -a account_from_file_arr <<<"$account_from_file"
-            if [ "${account_arr[1]}" == "${account_from_file_arr[1]}" ]; then
-                is_exist="$YES"
-                break
-            fi
-        done
-
-        if IS_NO "$is_exist"; then
-            LOG "删除账号: ${account_arr[1]}"
-            unset "ACCOUNTS[$i]"
+    for old_username in "${ACCOUNTS_ORDER[@]}"; do
+        if [ -z "${seen[$old_username]+_}" ]; then
+            LOG "删除账号: $old_username"
         fi
     done
+
+    # 提交更新
+    ACCOUNT_ISP=()
+    ACCOUNT_PASSWORD=()
+    ACCOUNT_BIND=()
+    ACCOUNT_LAST_TRY=()
+
+    for username in "${!next_isp[@]}"; do
+        ACCOUNT_ISP["$username"]="${next_isp[$username]}"
+        ACCOUNT_PASSWORD["$username"]="${next_password[$username]}"
+        ACCOUNT_BIND["$username"]="${next_bind[$username]:-0}"
+        ACCOUNT_LAST_TRY["$username"]="${next_last_try[$username]:-0}"
+    done
+
+    ACCOUNTS_ORDER=("${next_order[@]}")
 
     return "$YES"
 }
 
+function LIST_MACVLAN_INTERFACES() {
+    # 输出：按 macvlan 数字后缀排序的接口名（每行一个）
+    # 兼容 ip 输出里的 macvlanX@ethY: 形式
+    ip link show 2>/dev/null \
+        | awk -F': ' '/^[0-9]+: / {print $2}' \
+        | awk '{print $1}' \
+        | sed 's/:$//' \
+        | cut -d'@' -f1 \
+        | grep -E '^macvlan[0-9]+$' \
+        | awk '{n=$0; sub(/^macvlan/, "", n); print n, $0}' \
+        | sort -n \
+        | awk '{print $2}'
+}
+
+function REFRESH_MACVLAN_INTERFACES() {
+    local ifaces=()
+    local iface
+    while IFS= read -r iface; do
+        [ -n "$iface" ] && ifaces+=("$iface")
+    done < <(LIST_MACVLAN_INTERFACES)
+    MACVLAN_INTERFACES=("${ifaces[@]}")
+}
+
+function UPDATE_INTERFACE_STATE() {
+    local interface="$1"
+    local new_state="$2"
+    local message="$3"
+
+    local old_state="${INTERFACE_STATE[$interface]:-}"
+    if [ "$old_state" != "$new_state" ]; then
+        if [ -n "$message" ]; then
+            LOG "$message"
+        fi
+        INTERFACE_STATE["$interface"]="$new_state"
+    fi
+}
+
 function DEL_IP_ROUTING() {
-    local macvlan_num="$(ip link show | grep -c "macvlan")"
-
-    for ((i = 1; i <= macvlan_num; i++)); do
-        local interface="macvlan$i"
-
-        NO_OUTPUT ip route flush table "$((START_TABLE + i))"
-        NO_OUTPUT ip rule del pref "$((START_RULE + i))"
+    local idx=1
+    local interface
+    for interface in "${MACVLAN_INTERFACES[@]}"; do
+        NO_OUTPUT ip route flush table "$((START_TABLE + idx))"
+        NO_OUTPUT ip rule del pref "$((START_RULE + idx))"
+        ((idx++))
     done
 }
 
 function ADD_IP_ROUTING() {
-    local macvlan_num="$(ip link show | grep -c "macvlan")"
+    local idx=1
+    local interface
+    for interface in "${MACVLAN_INTERFACES[@]}"; do
+        local gateway_ip
+        gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')"
+        if [ -z "$gateway_ip" ]; then
+            LOG "接口 $interface 未找到网关，跳过认证路由规则"
+            ((idx++))
+            continue
+        fi
 
-    for ((i = 1; i <= macvlan_num; i++)); do
-        local interface="macvlan$i"
-        local gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')"
-
-        NO_OUTPUT ip route add "$AUTH_IP" via "$gateway_ip" dev "$interface" table "$((START_TABLE + i))"
-        NO_OUTPUT ip rule add pref "$((START_RULE + i))" from all to "$AUTH_IP" oif "$interface" lookup "$((START_TABLE + i))"
+        NO_OUTPUT ip route add "$AUTH_IP" via "$gateway_ip" dev "$interface" table "$((START_TABLE + idx))"
+        NO_OUTPUT ip rule add pref "$((START_RULE + idx))" from all to "$AUTH_IP" oif "$interface" lookup "$((START_TABLE + idx))"
+        ((idx++))
     done
 }
 
 function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
-    local interface="$1"
+    local interface_id="$1"
+    local interface="$2"
 
-    local no_offline="$YES"
+    if CHECK_NETWORK "$interface"; then
+        UPDATE_INTERFACE_STATE "$interface" "online" ""
+        return "$YES"
+    fi
 
-    if ! CHECK_NETWORK "$interface"; then
-        LOG "接口 $interface 无网络连接"
+    local has_auth="$NO"
+    local has_candidate="$NO"
+    local now="$(date +%s)"
 
-        no_offline="$NO"
-        local has_auth="$NO"
-        for ((j = 0; j < ${#ACCOUNTS[@]}; j++)); do
-            local account="${ACCOUNTS[j]}"
-            IFS=',' read -r -a account_arr <<<"$account"
-            if [ "${account_arr[3]}" -eq 0 ] && [ "$(($(date +%s) - account_arr[4]))" -gt "$WAIT_TIME" ]; then
-                local response
-                response="$(AUTH "${account_arr[0]}" "${account_arr[1]}" "${account_arr[2]}" "$interface")"
-                has_auth="$?"
-                if IS_YES "$has_auth"; then
-                    LOG "接口 $interface 上线！账号: ${account_arr[1]}"
-                    account_arr[3]="$i"
-                else
-                    LOG "接口 $interface 认证失败！账号: ${account_arr[1]}"
-                    LOG "错误信息: $response"
-                    account_arr[4]="$(($(date +%s) - WAIT_TIME + FAILED_RETRY_TIME))"
-                fi
-            elif [ "${account_arr[3]}" -eq "$i" ]; then
-                LOG "接口 $interface 被挤占！账号: ${account_arr[1]}"
-                account_arr[3]=0
-                account_arr[4]="$(date +%s)"
-            fi
-            ACCOUNTS[j]="$(
-                IFS=,
-                echo "${account_arr[*]}"
-            )"
-            if IS_YES "$has_auth"; then
-                break
-            fi
-        done
+    local username
+    # 先清理所有绑定到该接口的账号（避免“同接口多账号绑定”的脏状态）
+    for username in "${ACCOUNTS_ORDER[@]}"; do
+        local bind_id="${ACCOUNT_BIND[$username]:-0}"
+        if [ "$bind_id" -eq "$interface_id" ]; then
+            LOG "接口 $interface 离线，释放账号: $username"
+            ACCOUNT_BIND["$username"]=0
+            ACCOUNT_LAST_TRY["$username"]=0
+        fi
+    done
 
-        if IS_NO "$has_auth"; then
-            LOG "接口 $interface 无可用账号"
+    # 再按顺序找一个账号尝试认证
+    for username in "${ACCOUNTS_ORDER[@]}"; do
+        local bind_id="${ACCOUNT_BIND[$username]:-0}"
+        local last_try="${ACCOUNT_LAST_TRY[$username]:-0}"
+
+        if [ "$bind_id" -ne 0 ]; then
+            continue
+        fi
+
+        if [ "$((now - last_try))" -le "$FAILED_RETRY_TIME" ]; then
+            continue
+        fi
+
+        has_candidate="$YES"
+        local response="$(AUTH "${ACCOUNT_ISP[$username]}" "$username" "${ACCOUNT_PASSWORD[$username]}" "$interface")"
+        has_auth="$?"
+        if IS_YES "$has_auth"; then
+            LOG "接口 $interface 上线！账号: $username"
+            ACCOUNT_BIND["$username"]="$interface_id"
+            UPDATE_INTERFACE_STATE "$interface" "online" ""
+        else
+            LOG "接口 $interface 认证失败！账号: $username"
+            LOG "错误信息: $response"
+            ACCOUNT_LAST_TRY["$username"]="$now"
+        fi
+
+        if IS_YES "$has_auth"; then
+            break
+        fi
+    done
+
+    if IS_NO "$has_auth"; then
+        if IS_NO "$has_candidate"; then
+            UPDATE_INTERFACE_STATE "$interface" "no_account" "接口 $interface 无可用账号"
+        else
+            UPDATE_INTERFACE_STATE "$interface" "offline" "接口 $interface 无网络连接"
         fi
     fi
 
-    return "$no_offline"
+    return "$NO"
 }
 
 ##############################################
@@ -166,7 +275,8 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
 
 function USAGE() {
     LOG "用法:"
-    LOG "auto_auth.sh <账密文件路径> [循环睡眠时间(秒)] [挤占等待时间(xs,xm,xh)]"
+    LOG "auto_auth.sh <账密文件路径>"
+    LOG "账密文件格式: 每行 \"ISP,账号,密码\"（ISP: 0电信/1移动/2联通/3教育网；支持空行与 # 注释）"
 }
 
 function EXIT() {
@@ -192,16 +302,18 @@ function MAIN() {
     fi
 
     LOG "账密文件路径:         $ACCOUNT_FILE"
-    LOG "循环睡眠时间:         $SLEEP_TIME"
-    LOG "挤占等待时间:         $WAIT_TIME"
+    LOG "循环睡眠时间(固定):   $SLEEP_TIME"
+    LOG "失败重试等待时间:     $FAILED_RETRY_TIME"
 
     LOG_ASCII_ART
 
     LOG "启动……"
 
-    local macvlan_num="$(ip link show | grep -c "macvlan")"
+    REFRESH_MACVLAN_INTERFACES
+    local macvlan_num="${#MACVLAN_INTERFACES[@]}"
 
     LOG "macvlan数量: $macvlan_num"
+    LOG "接口列表: ${MACVLAN_INTERFACES[*]}"
 
     if [ "$macvlan_num" -eq 0 ]; then
         LOG "未找到macvlan接口!"
@@ -218,12 +330,13 @@ function MAIN() {
 
         local has_offline="$NO"
 
-        for ((i = 1; i <= macvlan_num; i++)); do
-            local interface="macvlan$i"
-
-            if ! AUTH_FOR_INTERFACE_FROM_ACCOUNTS "$interface"; then
+        local idx=1
+        local interface
+        for interface in "${MACVLAN_INTERFACES[@]}"; do
+            if ! AUTH_FOR_INTERFACE_FROM_ACCOUNTS "$idx" "$interface"; then
                 has_offline="$YES"
             fi
+            ((idx++))
         done
 
         if IS_YES "$has_offline"; then
