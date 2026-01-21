@@ -16,13 +16,6 @@ function AUTH() {
         curl_func="curl --interface $interface"
     fi
 
-    local cookie_file=""
-    cookie_file="$(mktemp -t auth_cookie.XXXXXX 2>/dev/null || mktemp /tmp/auth_cookie.XXXXXX 2>/dev/null || true)"
-    if [ -z "$cookie_file" ]; then
-        cookie_file="/tmp/auth_cookie_$$"
-        rm -f "$cookie_file" 2>/dev/null || true
-    fi
-
     local gateway_ip="$(ip route show dev "$interface" default 2>/dev/null | awk '{print $3}')" #用网关做query ip可以省一个路由规则，因为链上的不需要路由
 
     local query_result="$($curl_func -m "$REQUEST_TIMEOUT" -s "http://${gateway_ip}" | grep -o "http://${AUTH_IP}/eportal/index\.jsp?[^\"' ]*")"
@@ -30,7 +23,7 @@ function AUTH() {
 
     local referer_prefix="http://${AUTH_IP}/eportal/index.jsp?"
 
-    local response="$($curl_func -m "$REQUEST_TIMEOUT" -s -c "$cookie_file" \
+    local raw_response="$($curl_func -m "$REQUEST_TIMEOUT" -s -D - \
         -X POST \
         -H "Host: ${AUTH_IP}" \
         -H "Connection: keep-alive" \
@@ -51,22 +44,29 @@ function AUTH() {
         --data-urlencode "passwordEncrypt=false" \
         "http://${AUTH_IP}/eportal/InterFace.do?method=login")"
 
+    local header=""
+    local response="$raw_response"
+    if [[ "$raw_response" == *$'\r\n\r\n'* ]]; then
+        header="${raw_response%%$'\r\n\r\n'*}"
+        response="${raw_response#*$'\r\n\r\n'}"
+    elif [[ "$raw_response" == *$'\n\n'* ]]; then
+        header="${raw_response%%$'\n\n'*}"
+        response="${raw_response#*$'\n\n'}"
+    fi
+
     if [[ "$response" == *"success"* ]]; then
         local cookie_value=""
-        if [ -f "$cookie_file" ]; then
-            cookie_value="$(awk '$6=="JSESSIONID"{print $7}' "$cookie_file" | tail -n1)"
+        if [ -n "$header" ]; then
+            cookie_value="$(printf '%s\n' "$header" | tr -d '\r' | sed -n 's/^[Ss]et-[Cc]ookie:.*JSESSIONID=\([^;]*\).*/\1/p' | tail -n1)"
         fi
-        rm -f "$cookie_file" 2>/dev/null || true
         if [ -n "$cookie_value" ]; then
             echo "JSESSIONID=$cookie_value"
         fi
         return "$YES"
     elif [ -z "$response" ]; then
-        rm -f "$cookie_file" 2>/dev/null || true
         echo "无回复"
         return "$NO"
     else
-        rm -f "$cookie_file" 2>/dev/null || true
         echo "$response"
         return "$NO"
     fi
@@ -96,7 +96,7 @@ function LOGOUT() {
 function GET_ONLINE_USER_INFO() {
     local interface="$1"
     local user_index="$2"
-    local cookie_file="$3"
+    local cookie_string="$3"
     local keepalive_interval="${4:-0}"
 
     if [ -z "$user_index" ]; then
@@ -110,12 +110,8 @@ function GET_ONLINE_USER_INFO() {
     fi
 
     local -a cookie_args=()
-    if [ -n "$cookie_file" ]; then
-        if [ -f "$cookie_file" ]; then
-            cookie_args=(-b "$cookie_file")
-        elif [[ "$cookie_file" == *"="* ]]; then
-            cookie_args=(-b "$cookie_file")
-        fi
+    if [ -n "$cookie_string" ]; then
+        cookie_args=(-b "$cookie_string")
     fi
 
     local referer="http://${AUTH_IP}/eportal/success.jsp?userIndex=$user_index&keepaliveInterval=$keepalive_interval"
@@ -151,7 +147,7 @@ function GET_ONLINE_USER_INFO() {
 function KEEPALIVE() {
     local interface="$1"
     local user_index="$2"
-    local cookie_file="$3"
+    local cookie_string="$3"
     local keepalive_interval="${4:-0}"
 
     if [ -z "$user_index" ]; then
@@ -165,12 +161,8 @@ function KEEPALIVE() {
     fi
 
     local -a cookie_args=()
-    if [ -n "$cookie_file" ]; then
-        if [ -f "$cookie_file" ]; then
-            cookie_args=(-b "$cookie_file")
-        elif [[ "$cookie_file" == *"="* ]]; then
-            cookie_args=(-b "$cookie_file")
-        fi
+    if [ -n "$cookie_string" ]; then
+        cookie_args=(-b "$cookie_string")
     fi
 
     local referer="http://${AUTH_IP}/eportal/success.jsp?userIndex=$user_index&keepaliveInterval=$keepalive_interval"

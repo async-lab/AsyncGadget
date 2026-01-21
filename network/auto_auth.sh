@@ -242,7 +242,8 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
         fi
 
         has_candidate="$YES"
-        local response="$(AUTH "${ACCOUNT_ISP[$username]}" "$username" "${ACCOUNT_PASSWORD[$username]}" "$interface")"
+        local response=""
+        response="$(AUTH "${ACCOUNT_ISP[$username]}" "$username" "${ACCOUNT_PASSWORD[$username]}" "$interface")"
         has_auth="$?"
         if IS_YES "$has_auth"; then
             LOG "接口 $interface 上线！账号: $username, cookie: $response"
