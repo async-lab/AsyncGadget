@@ -245,7 +245,7 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
         local response="$(AUTH "${ACCOUNT_ISP[$username]}" "$username" "${ACCOUNT_PASSWORD[$username]}" "$interface")"
         has_auth="$?"
         if IS_YES "$has_auth"; then
-            LOG "接口 $interface 上线！账号: $username"
+            LOG "接口 $interface 上线！账号: $username, cookie: $response"
             ACCOUNT_BIND["$username"]="$interface_id"
             UPDATE_INTERFACE_STATE "$interface" "online" ""
         else
