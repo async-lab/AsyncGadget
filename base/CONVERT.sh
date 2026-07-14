@@ -17,6 +17,10 @@ function URLENCODE() {
     done
 }
 
+function QUOTE() {
+    printf "'%s'" "${1//\'/\'\\\'\'}"
+}
+
 function TRIM() {
     local str="$1"
 

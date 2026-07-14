@@ -19,7 +19,7 @@ source "$ROOT_DIR/base/STD.sh"
 NODES="${1:-"CN"}"
 THREAD_NUM="${2:-4}"
 
-NODE_CN="https://dldir1.qq.com/qqfile/qq/PCQQ9.7.17/QQ9.7.17.29225.exe"
+NODE_CN="https://qqdl.gtimg.cn/qqfile/QQNT/9.9.31/release/092069d7/QQ_9.9.31_260528_x64_01.exe"
 NODE_HK="http://hkg.download.datapacket.com/100mb.bin"
 NODE_JP="http://tyo.download.datapacket.com/100mb.bin"
 NODE_SG="https://sgp.proof.ovh.net/files/100Mb.dat"

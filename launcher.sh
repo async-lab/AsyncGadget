@@ -9,6 +9,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export ROOT_DIR="$DIR"
 
 CERT_SYNC_BOT="$ROOT_DIR/misc/cert_sync_bot.sh"
+CRON_UPDATER="$ROOT_DIR/misc/cron_updater.sh"
 GIT_RELEASE_UPDATER="$ROOT_DIR/misc/git_release_updater.sh"
 STALKER="$ROOT_DIR/misc/stalker.sh"
 SYSTEMD_BOT="$ROOT_DIR/misc/systemd_bot.sh"
@@ -42,6 +43,7 @@ function USAGE() {
     echo "脚本列表："
     echo "—— misc"
     echo "      ——> cert_sync_bot"
+    echo "      ——> cron_updater"
     echo "      ——> git_release_updater"
     echo "      ——> stalker"
     echo "      ——> systemd_bot"
@@ -63,6 +65,9 @@ function MAIN() {
     case "$SCRIPT" in
     "cert_sync_bot")
         $CERT_SYNC_BOT "$@" &
+        ;;
+    "cron_updater")
+        "$CRON_UPDATER" "$@" &
         ;;
     "git_release_updater")
         $GIT_RELEASE_UPDATER "$@" &

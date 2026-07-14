@@ -534,10 +534,11 @@ function SMOOTH_ECHO() {
     local args=("$@")
     local args_length="${#args[@]}"
     local buffer="${args["$args_length" - 1]}"
+    local clear_line="$(CLEAR_LINE)"
 
     buffer="${buffer%$'\n'}"
     # 不要先清屏再打印：会让下半屏先空一下产生闪烁
     # 用 xterm synchronized output 把一次刷新包起来，避免“边写边渲染”
-    buffer="${buffer//$'\n'/$'\033[K\n'}"
-    printf '\033[?2026h\033[H%s\033[K\033[J\033[?2026l' "$buffer"
+    buffer="${buffer//$'\n'/$clear_line$'\n'}"
+    printf '%s%s%s%s%s%s' "$(XTERM_SYNC_ENABLE)" "$(CURSOR_TO_START)" "$buffer" "$(CLEAR_LINE)" "$(CLEAR_TO_END)" "$(XTERM_SYNC_DISABLE)"
 }
