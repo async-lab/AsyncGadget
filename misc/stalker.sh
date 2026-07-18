@@ -140,9 +140,13 @@ function MAIN() {
     ALT_SCREEN_ENABLE
 
     local seq_clear="$(CLEAR_FROM_START_TO_END)"
+    local seq_clear_line="$(CLEAR_LINE)"
+    local seq_cursor_to_start="$(CURSOR_TO_START)"
     local seq_enable_echo="$(ENABLE_ECHO)"
     local seq_hide_cursor="$(HIDE_CURSOR)"
     local seq_disable_echo="$(DISABLE_ECHO)"
+    local seq_sync_enable="$(XTERM_SYNC_ENABLE)"
+    local seq_sync_disable="$(XTERM_SYNC_DISABLE)"
 
     printf '%s' "$seq_clear"
 
@@ -174,15 +178,15 @@ function MAIN() {
             local header=""
 
             header+="$seq_enable_echo$seq_hide_cursor"
-            header+=' _______ _______ _______ _____   __  __ _______ ______  '$'\033[K\n'
-            header+='|     __|_     _|   _   |     |_|  |/  |    ___|   __ \ '"      按Ctrl+C关闭"$'\033[K\n'
-            header+='|__     | |   | |       |       |     <|    ___|      < '"      处理时间：$PROCESS_TIME ms"$'\033[K\n'
-            header+='|_______| |___| |___|___|_______|__|\__|_______|___|__| '"      [ $now_str ]     "$'\033[K\n'
-            header+="—————————————————————————————————————————————————————————————————————————————————————————"$'\033[K\n'
-            header+=$'\033[K\n'
+            header+=' _______ _______ _______ _____   __  __ _______ ______  '"$seq_clear_line"$'\n'
+            header+='|     __|_     _|   _   |     |_|  |/  |    ___|   __ \ '"      按Ctrl+C关闭$seq_clear_line"$'\n'
+            header+='|__     | |   | |       |       |     <|    ___|      < '"      处理时间：$PROCESS_TIME ms$seq_clear_line"$'\n'
+            header+='|_______| |___| |___|___|_______|__|\__|_______|___|__| '"      [ $now_str ]     $seq_clear_line"$'\n'
+            header+="—————————————————————————————————————————————————————————————————————————————————————————$seq_clear_line"$'\n'
+            header+="$seq_clear_line"$'\n'
             header+="$seq_disable_echo"
 
-            printf '\033[?2026h\033[H%s\033[?2026l' "$header"
+            printf '%s%s%s%s' "$seq_sync_enable" "$seq_cursor_to_start" "$header" "$seq_sync_disable"
             CURSOR_MOVE 6 1
         else
             local buffer=""
