@@ -383,12 +383,15 @@ function FOLD_LINE_TO_ARRAY() {
                 run_len="$((run_len - take_chars))"
                 seg_width="$((seg_width + take_chars))"
             else
-                if ((rem_cols <= 1)); then
+                if ((rem_cols <= 1 && seg_width > 0)); then
                     starts+=("$pos")
                     seg_width=0
                     continue
                 fi
                 take_chars="$((rem_cols / 2))"
+                if ((take_chars < 1)); then
+                    take_chars=1
+                fi
                 if ((take_chars > run_len)); then
                     take_chars="$run_len"
                 fi
@@ -540,5 +543,5 @@ function SMOOTH_ECHO() {
     # 不要先清屏再打印：会让下半屏先空一下产生闪烁
     # 用 xterm synchronized output 把一次刷新包起来，避免“边写边渲染”
     buffer="${buffer//$'\n'/$clear_line$'\n'}"
-    printf '%s%s%s%s%s%s' "$(XTERM_SYNC_ENABLE)" "$(CURSOR_TO_START)" "$buffer" "$(CLEAR_LINE)" "$(CLEAR_TO_END)" "$(XTERM_SYNC_DISABLE)"
+    printf '%s%s%s%s%s%s' "$(XTERM_SYNC_ENABLE)" "$(CURSOR_TO_START)" "$buffer" "$clear_line" "$(CLEAR_TO_END)" "$(XTERM_SYNC_DISABLE)"
 }

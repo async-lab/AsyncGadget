@@ -26,7 +26,6 @@ STALKER_RESIZED=1
 STALKER_CACHE_HIT=0
 STALKER_CACHE_WINDOW_LINES=0
 STALKER_CACHE_WINDOW_COLUMNS=0
-STALKER_CACHE_SOURCE=""
 STALKER_CACHE_RAW=""
 STALKER_CACHE_CONTENT=""
 
@@ -67,13 +66,13 @@ function GET_SHOW() {
     fi
 
     if [[ "$raw" == *$'\v'* ]]; then
-        local vtab_replace="$(printf "%*s" "$window_columns" ' ')"
+        local vtab_replace=""
+        printf -v vtab_replace "%*s" "$window_columns" ' '
         raw="${raw//$'\v'/$vtab_replace}"
     fi
 
     if [ "$window_lines" -eq "$STALKER_CACHE_WINDOW_LINES" ] \
         && [ "$window_columns" -eq "$STALKER_CACHE_WINDOW_COLUMNS" ] \
-        && [ "$SHOW_SOURCE" == "$STALKER_CACHE_SOURCE" ] \
         && [ "$raw" == "$STALKER_CACHE_RAW" ]; then
         out="$STALKER_CACHE_CONTENT"
         STALKER_CACHE_HIT=1
@@ -104,14 +103,12 @@ function GET_SHOW() {
         done
     done
 
-    local i
     for ((i = ${#rev_lines[@]} - 1; i >= 0; i--)); do
         out+="${rev_lines[i]}"$'\n'
     done
 
     STALKER_CACHE_WINDOW_LINES="$window_lines"
     STALKER_CACHE_WINDOW_COLUMNS="$window_columns"
-    STALKER_CACHE_SOURCE="$SHOW_SOURCE"
     STALKER_CACHE_RAW="$raw"
     STALKER_CACHE_CONTENT="$out"
     return 0

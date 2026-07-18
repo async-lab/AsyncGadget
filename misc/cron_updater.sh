@@ -21,6 +21,10 @@ CRON_EXPR="${2:-0 2 * * *}"
 
 DEPENDED_PACKAGES=("crontab")
 
+if [[ "$SERVICE" == compose:* ]]; then
+    DEPENDED_PACKAGES+=("flock")
+fi
+
 ##############################################
 ################ PROCESSFUNC #################
 
@@ -44,6 +48,30 @@ function TOGGLE_CRON() {
     LOG "已开启定时任务: $mark ($expr)"
 }
 
+function UPSERT_CRON() {
+    local mark="$1"
+    local expr="$2"
+    local command="$3"
+    local marker
+    local existed=false
+
+    marker="# AsyncGadget cron_updater: $mark"
+    marker="${marker//%/\\%}"
+    command="${command//%/\\%}"
+
+    if crontab -l 2>/dev/null | grep -Fq -- "$marker"; then
+        existed=true
+    fi
+
+    (crontab -l 2>/dev/null | grep -Fv -- "$marker"; printf "%s %s %s\n" "$expr" "$command" "$marker") | crontab - || return 1
+
+    if [ "$existed" == true ]; then
+        LOG "已更新定时任务: $mark ($expr)"
+    else
+        LOG "已开启定时任务: $mark ($expr)"
+    fi
+}
+
 ##############################################
 ################ PROGRAMFUNC #################
 
@@ -51,6 +79,7 @@ function USAGE() {
     LOG "请输入正确的参数!"
     LOG "用法: cron_updater.sh compose:<compose目录> [\"cron表达式\"]"
     LOG "      cron_updater.sh apt [\"cron表达式\"]"
+    LOG "未指定cron表达式时切换任务，指定时新增或更新任务"
 }
 
 function CHECK_PARAMS() {
@@ -60,6 +89,7 @@ function CHECK_PARAMS() {
 function MAIN() {
     local compose_dir
     local compose_dir_arg
+    local compose_command
     local marker_name
     local command
 
@@ -83,13 +113,25 @@ function MAIN() {
             EXIT 1
         fi
         marker_name="compose:$compose_dir"
-        command="cd $(QUOTE "$compose_dir") && docker compose up -d --pull always && docker system prune -af"
+        compose_command="cd $(QUOTE "$compose_dir") && docker compose up -d --pull always && docker system prune -af"
+        command="flock -w 3600 /tmp/asyncgadget-docker-update.lock sh -c $(QUOTE "$compose_command")"
     else
         marker_name="apt"
-        command="apt-get update && apt-get dist-upgrade -y && apt-get autoremove -y"
+        command="apt update && apt dist-upgrade -y && apt autoremove -y"
     fi
 
-    TOGGLE_CRON "$marker_name" "$CRON_EXPR" "$command" || EXIT 1
+    case "$#" in
+    1)
+        TOGGLE_CRON "$marker_name" "$CRON_EXPR" "$command" || EXIT 1
+        ;;
+    2)
+        UPSERT_CRON "$marker_name" "$CRON_EXPR" "$command" || EXIT 1
+        ;;
+    *)
+        USAGE
+        EXIT 1
+        ;;
+    esac
     EXIT 0
 }
 
