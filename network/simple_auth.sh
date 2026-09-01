@@ -12,7 +12,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/STD.sh"
-source "$ROOT_DIR/network/lib/school_auth.sh"
+REQUIRE "$ROOT_DIR/network/lib/school_auth.sh"
 
 ##############################################
 ################### GLOBAL ###################

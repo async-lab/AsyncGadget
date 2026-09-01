@@ -15,15 +15,14 @@ source "$ROOT_DIR/base/STD.sh"
 
 ##############################################
 ################### GLOBAL ###################
-
 NODES="${1:-"CN"}"
 THREAD_NUM="${2:-4}"
 
-NODE_CN="https://qqdl.gtimg.cn/qqfile/QQNT/9.9.31/release/092069d7/QQ_9.9.31_260528_x64_01.exe"
+NODE_CN="https://dldir1.qq.com/weixin/Windows/WeChatSetup.exe"
 NODE_HK="http://hkg.download.datapacket.com/100mb.bin"
 NODE_JP="http://tyo.download.datapacket.com/100mb.bin"
 NODE_SG="https://sgp.proof.ovh.net/files/100Mb.dat"
-NODE_DE="https://nbg1-speed.hetzner.com/100MB.bin"
+NODE_DE="http://fra.download.datapacket.com/100mb.bin"
 NODE_FR="http://par.download.datapacket.com/100mb.bin"
 NODE_US="http://lax.download.datapacket.com/100mb.bin"
 

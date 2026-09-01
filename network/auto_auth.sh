@@ -12,7 +12,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export ROOT_DIR=${ROOT_DIR:-"$DIR/.."}
 
 source "$ROOT_DIR/base/STD.sh"
-source "$ROOT_DIR/network/lib/school_auth.sh"
+REQUIRE "$ROOT_DIR/network/lib/school_auth.sh"
 
 ##############################################
 ################### GLOBAL ###################
@@ -246,7 +246,7 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
         response="$(AUTH "${ACCOUNT_ISP[$username]}" "$username" "${ACCOUNT_PASSWORD[$username]}" "$interface")"
         has_auth="$?"
         if IS_YES "$has_auth"; then
-            LOG "接口 $interface 上线！账号: $username, cookie: $response"
+            LOG "接口 $interface 上线！账号: $username, 会话: $response"
             ACCOUNT_BIND["$username"]="$interface_id"
             UPDATE_INTERFACE_STATE "$interface" "online" ""
         else
