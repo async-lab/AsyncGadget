@@ -18,7 +18,7 @@ source "$ROOT_DIR/base/STD.sh"
 NODES="${1:-"CN"}"
 THREAD_NUM="${2:-4}"
 
-NODE_CN="https://dldir1.qq.com/weixin/Windows/WeChatSetup.exe"
+NODE_CN="https://wirelesscdn-download.xuexi.cn/publish/xuexi_android/latest/xuexi_android_10002068.apk"
 NODE_HK="http://hkg.download.datapacket.com/100mb.bin"
 NODE_JP="http://tyo.download.datapacket.com/100mb.bin"
 NODE_SG="https://sgp.proof.ovh.net/files/100Mb.dat"
