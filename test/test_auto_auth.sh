@@ -116,6 +116,28 @@ assert_eq "AUTH_FOR_INTERFACE_FROM_ACCOUNTS returns NO (1) on query error" "1" "
 assert_eq "Query error preserves macvlan3 binding to 2025081023" "macvlan3" "${ACCOUNT_BIND[2025081023]}"
 assert_eq "AUTH was NOT triggered on query error" "" "$(cat "$MOCK_AUTH_LOG" 2>/dev/null)"
 
+MACVLAN_INTERFACES=("macvlan1" "macvlan2")
+ACCOUNT_BIND[2025081023]=""
+ACCOUNT_BIND[2024081063]=""
+rm -f "$MOCK_AUTH_LOG"
+
+function GET_ONLINE_USER_INFO() {
+    if [[ "$1" == "macvlan2" ]]; then
+        echo -e "userName=2025081023\nauthenticationTime=2026-09-13 12:00:00\nnodeIp=10.23.64.232\nnodeMac=AA:BB:EE\nnodePhysicalLocation=Lab\nuserObjectId=4"
+        return 0
+    fi
+    echo "离线"
+    return 1
+}
+
+SYNC_ONLINE_ACCOUNTS
+assert_eq "SYNC_ONLINE_ACCOUNTS binds 2025081023 to macvlan2" "macvlan2" "${ACCOUNT_BIND[2025081023]}"
+
+AUTH_FOR_INTERFACE_FROM_ACCOUNTS "macvlan1"
+mock_auth_user="$(cat "$MOCK_AUTH_LOG" 2>/dev/null)"
+assert_eq "macvlan1 does not preempt 2025081023 and instead uses 2024081063" "2024081063" "$mock_auth_user"
+assert_eq "2024081063 is bound to macvlan1" "macvlan1" "${ACCOUNT_BIND[2024081063]}"
+
 rm -f "$TEST_ACCOUNTS" "$MOCK_AUTH_LOG"
 
 echo "----------------------------------------"

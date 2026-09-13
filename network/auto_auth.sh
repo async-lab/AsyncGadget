@@ -204,6 +204,37 @@ function ADD_IP_ROUTING() {
     done
 }
 
+function SYNC_ONLINE_ACCOUNTS() {
+    LOG "启动检查: 正在扫描各接口在线状态，防止账号挤占..."
+    local interface
+    for interface in "${MACVLAN_INTERFACES[@]}"; do
+        local info_raw
+        local query_status=0
+        info_raw="$(GET_ONLINE_USER_INFO "$interface" 2>/dev/null)" || query_status=$?
+
+        if [ "$query_status" -eq 0 ]; then
+            local -A info=()
+            PARSE_KV info "$info_raw"
+            local online_u="${info[userName]}"
+
+            if [ -n "$online_u" ]; then
+                if [ -n "${ACCOUNT_ISP[$online_u]+_}" ]; then
+                    local existing_bind="${ACCOUNT_BIND[$online_u]:-}"
+                    if [ -n "$existing_bind" ] && [ "$existing_bind" != "$interface" ]; then
+                        LOG "接口 $interface 在线 ($online_u)，更新原绑定 (原接口: $existing_bind -> 现接口: $interface)"
+                    fi
+                    ACCOUNT_BIND["$online_u"]="$interface"
+                    UPDATE_INTERFACE_STATE "$interface" "online" "接口 $interface 在线 (账号: $online_u)"
+                else
+                    UPDATE_INTERFACE_STATE "$interface" "online" "接口 $interface 在线 (外部账号: $online_u)"
+                fi
+            fi
+        elif [ "$query_status" -ne 1 ]; then
+            LOG "启动检查: 接口 $interface 查询在线状态失败 (网络或服务端异常，状态码: $query_status)"
+        fi
+    done
+}
+
 function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
     local interface="$1"
 
@@ -352,6 +383,10 @@ function MAIN() {
 
     DEL_IP_ROUTING
     ADD_IP_ROUTING
+
+    LOAD_ACCOUNTS
+
+    SYNC_ONLINE_ACCOUNTS
 
     while true; do
         LOAD_ACCOUNTS
