@@ -36,33 +36,14 @@ function LIST_CONTAINS() {
 }
 
 ##############################################
-#################### MAP #####################
+################### OTHER ####################
 
-# 检查关联数组里某个 key 是否存在。
-function MAP_HAS() {
-    local -n _map="$1"
-    local key="$2"
-    [[ -n "${_map["$key"]+_}" ]]
-}
-
-# 获取关联数组的值（不存在则输出空字符串）。
-function MAP_GET() {
-    local -n _map="$1"
-    local key="$2"
-    printf '%s' "${_map["$key"]}"
-}
-
-# 设置关联数组的值。
-function MAP_SET() {
-    local -n _map="$1"
-    local key="$2"
-    local value="$3"
-    _map["$key"]="$value"
-}
-
-# 删除关联数组的 key。
-function MAP_DEL() {
-    local -n _map="$1"
-    local key="$2"
-    unset "_map[\"$key\"]"
+# 键值对解析函数
+function PARSE_KV() {
+    local -n __out=$1
+    local __parse_k __parse_v
+    __out=()
+    while IFS='=' read -r __parse_k __parse_v; do
+        [[ -n $__parse_k ]] && __out["$__parse_k"]="$__parse_v"
+    done <<< "$2"
 }

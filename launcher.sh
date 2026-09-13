@@ -30,10 +30,11 @@ SCRIPT_PID=""
 # 创建后台进程手动关闭可以防止一些奇怪的情况
 # 直接前台运行它也会创建子shell，有些时候就关不掉
 function EXIT() {
+    local status="${1:-$?}"
     kill "$SCRIPT_PID" >/dev/null 2>&1
     wait "$SCRIPT_PID" >/dev/null 2>&1
     exec 3<&-
-    exit "$@"
+    exit "$status"
 }
 
 function USAGE() {
@@ -99,7 +100,7 @@ function MAIN() {
 
     SCRIPT_PID="$!"
     wait "$SCRIPT_PID"
-    EXIT 0
+    EXIT "$?"
 }
 
 trap EXIT SIGINT SIGTERM

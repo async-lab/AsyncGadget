@@ -27,7 +27,7 @@ START_RULE="100"
 # 账号池（按 username 做 key，避免维护“结构体数组”）
 declare -A ACCOUNT_ISP=()       # username -> isp
 declare -A ACCOUNT_PASSWORD=()  # username -> password
-declare -A ACCOUNT_BIND=()      # username -> interface_id(从1开始；0表示未绑定)
+declare -A ACCOUNT_BIND=()      # username -> interface (绑定接口名，如 "macvlan1"；空字符串表示未绑定)
 declare -A ACCOUNT_LAST_TRY=()  # username -> epoch seconds
 ACCOUNTS_ORDER=()              # 账号尝试顺序（来自文件的顺序）
 
@@ -94,11 +94,11 @@ function LOAD_ACCOUNTS() {
 
             if [ -n "${ACCOUNT_ISP[$username]+_}" ]; then
                 # 账号已存在：保留运行时状态（绑定/冷却）
-                next_bind["$username"]="${ACCOUNT_BIND[$username]:-0}"
+                next_bind["$username"]="${ACCOUNT_BIND[$username]:-}"
                 next_last_try["$username"]="${ACCOUNT_LAST_TRY[$username]:-0}"
             else
                 # 新账号
-                next_bind["$username"]=0
+                next_bind["$username"]=""
                 next_last_try["$username"]=0
             fi
         fi
@@ -130,7 +130,7 @@ function LOAD_ACCOUNTS() {
     for username in "${!next_isp[@]}"; do
         ACCOUNT_ISP["$username"]="${next_isp[$username]}"
         ACCOUNT_PASSWORD["$username"]="${next_password[$username]}"
-        ACCOUNT_BIND["$username"]="${next_bind[$username]:-0}"
+        ACCOUNT_BIND["$username"]="${next_bind[$username]:-}"
         ACCOUNT_LAST_TRY["$username"]="${next_last_try[$username]:-0}"
     done
 
@@ -205,12 +205,42 @@ function ADD_IP_ROUTING() {
 }
 
 function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
-    local interface_id="$1"
-    local interface="$2"
+    local interface="$1"
 
-    if CHECK_NETWORK "$interface"; then
-        UPDATE_INTERFACE_STATE "$interface" "online" ""
-        return "$YES"
+    local info_raw
+    local query_status=0
+    info_raw="$(GET_ONLINE_USER_INFO "$interface" 2>/dev/null)" || query_status=$?
+
+    if [ "$query_status" -eq 0 ]; then
+        local -A info=()
+        PARSE_KV info "$info_raw"
+        local online_u="${info[userName]}"
+
+        if [ -n "$online_u" ]; then
+            local u
+            for u in "${ACCOUNTS_ORDER[@]}"; do
+                if [ "${ACCOUNT_BIND[$u]:-}" == "$interface" ] && [ "$u" != "$online_u" ]; then
+                    LOG "接口 $interface 账号变更 (原: $u -> 现: $online_u)，释放旧账号"
+                    ACCOUNT_BIND["$u"]=""
+                fi
+            done
+
+            if [ -n "${ACCOUNT_ISP[$online_u]+_}" ]; then
+                local existing_bind="${ACCOUNT_BIND[$online_u]:-}"
+                if [ -n "$existing_bind" ] && [ "$existing_bind" != "$interface" ]; then
+                    LOG "接口 $interface 在线 ($online_u)，更新原绑定 (原接口: $existing_bind -> 现接口: $interface)"
+                fi
+                ACCOUNT_BIND["$online_u"]="$interface"
+                UPDATE_INTERFACE_STATE "$interface" "online" "接口 $interface 在线 (账号: $online_u)"
+            else
+                UPDATE_INTERFACE_STATE "$interface" "online" "接口 $interface 在线 (外部账号: $online_u)"
+            fi
+
+            return "$YES"
+        fi
+    elif [ "$query_status" -ne 1 ]; then
+        LOG "接口 $interface 查询在线状态失败 (网络或服务端异常，状态码: $query_status)，保持当前绑定状态"
+        return "$NO"
     fi
 
     local has_auth="$NO"
@@ -218,22 +248,21 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
     local now="$(date +%s)"
 
     local username
-    # 先清理所有绑定到该接口的账号（避免“同接口多账号绑定”的脏状态）
     for username in "${ACCOUNTS_ORDER[@]}"; do
-        local bind_id="${ACCOUNT_BIND[$username]:-0}"
-        if [ "$bind_id" -eq "$interface_id" ]; then
+        local bind_if="${ACCOUNT_BIND[$username]:-}"
+        if [ "$bind_if" == "$interface" ]; then
             LOG "接口 $interface 离线，释放账号: $username"
-            ACCOUNT_BIND["$username"]=0
+            ACCOUNT_BIND["$username"]=""
             ACCOUNT_LAST_TRY["$username"]=0
         fi
     done
 
     # 再按顺序找一个账号尝试认证
     for username in "${ACCOUNTS_ORDER[@]}"; do
-        local bind_id="${ACCOUNT_BIND[$username]:-0}"
+        local bind_if="${ACCOUNT_BIND[$username]:-}"
         local last_try="${ACCOUNT_LAST_TRY[$username]:-0}"
 
-        if [ "$bind_id" -ne 0 ]; then
+        if [ -n "$bind_if" ]; then
             continue
         fi
 
@@ -247,8 +276,8 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
         has_auth="$?"
         if IS_YES "$has_auth"; then
             LOG "接口 $interface 上线！账号: $username, 会话: $response"
-            ACCOUNT_BIND["$username"]="$interface_id"
-            UPDATE_INTERFACE_STATE "$interface" "online" ""
+            ACCOUNT_BIND["$username"]="$interface"
+            UPDATE_INTERFACE_STATE "$interface" "online" "接口 $interface 上线 (账号: $username)"
         else
             LOG "接口 $interface 认证失败！账号: $username"
             LOG "错误信息: $response"
@@ -256,16 +285,14 @@ function AUTH_FOR_INTERFACE_FROM_ACCOUNTS() {
         fi
 
         if IS_YES "$has_auth"; then
-            break
+            return "$YES"
         fi
     done
 
-    if IS_NO "$has_auth"; then
-        if IS_NO "$has_candidate"; then
-            UPDATE_INTERFACE_STATE "$interface" "no_account" "接口 $interface 无可用账号"
-        else
-            UPDATE_INTERFACE_STATE "$interface" "offline" "接口 $interface 无网络连接"
-        fi
+    if IS_NO "$has_candidate"; then
+        UPDATE_INTERFACE_STATE "$interface" "no_account" "接口 $interface 无可用账号"
+    else
+        UPDATE_INTERFACE_STATE "$interface" "offline" "接口 $interface 无网络连接"
     fi
 
     return "$NO"
@@ -331,13 +358,11 @@ function MAIN() {
 
         local has_offline="$NO"
 
-        local idx=1
         local interface
         for interface in "${MACVLAN_INTERFACES[@]}"; do
-            if ! AUTH_FOR_INTERFACE_FROM_ACCOUNTS "$idx" "$interface"; then
+            if ! AUTH_FOR_INTERFACE_FROM_ACCOUNTS "$interface"; then
                 has_offline="$YES"
             fi
-            ((idx++))
         done
 
         if IS_YES "$has_offline"; then
