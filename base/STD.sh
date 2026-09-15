@@ -121,7 +121,11 @@ function DEFAULT_CHECK_PARAMS() {
 }
 
 function DEFAULT_MAIN() {
-    if ! CHECK_PACKAGES || ! CHECK_PARAMS; then
+    if ! CHECK_PACKAGES; then
+        return 1
+    fi
+
+    if ! CHECK_PARAMS; then
         USAGE
         return 1
     fi
